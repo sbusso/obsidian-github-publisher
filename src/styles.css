@@ -140,7 +140,7 @@ a.github-publisher-download:hover {
 
 .github-publisher-copy:before {
 	color: var(--interactive-success);
-	content: "✓";
+	content: '✓';
 	position: absolute;
 	left: -18px;
 	font-weight: bold;
@@ -221,9 +221,7 @@ a.github-publisher-download:hover {
 		width: 100%;
 	}
 
-	.setting-item.github-publisher-export-import
-		> .setting-item-control
-		button {
+	.setting-item.github-publisher-export-import > .setting-item-control button {
 		width: 100%;
 	}
 
@@ -302,7 +300,7 @@ span.obsidian-publisher.icons {
 	text-decoration: underline;
 }
 
-.github-publisher .setting-item.title input[type="text"][placeholder="title"] {
+.github-publisher .setting-item.title input[type='text'][placeholder='title'] {
 	width: 100%;
 }
 

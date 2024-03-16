@@ -1,4 +1,4 @@
-import i18next from "i18next";
+import i18next from 'i18next';
 import {
 	FrontMatterCache,
 	getFrontMatterInfo,
@@ -8,21 +8,21 @@ import {
 	parseYaml,
 	stringifyYaml,
 	TFile,
-} from "obsidian";
-import { isFolderNote } from "src/utils/data_validation_test";
+} from 'obsidian';
+import { isFolderNote } from 'src/utils/data_validation_test';
 
-import GithubPublisher from "../main";
+import GithubPublisher from '../main';
 import {
 	FrontmatterConvert,
 	GitHubPublisherSettings,
 	LinkedNotes,
 	MultiProperties,
-} from "../settings/interface";
-import { notif } from "../utils";
-import { convertDataviewQueries } from "./compiler/dataview";
-import { bakeEmbeds, convertInlineDataview } from "./compiler/embeds";
-import findAndReplaceText from "./find_and_replace_text";
-import { convertToInternalGithub, convertWikilinks } from "./links";
+} from '../settings/interface';
+import { notif } from '../utils';
+import { convertDataviewQueries } from './compiler/dataview';
+import { bakeEmbeds, convertInlineDataview } from './compiler/embeds';
+import findAndReplaceText from './find_and_replace_text';
+import { convertToInternalGithub, convertWikilinks } from './links';
 
 /**
  * Convert soft line breaks to hard line breaks, adding two space at the end of the line.
@@ -41,9 +41,9 @@ export function addHardLineBreak(
 	frontmatter: FrontmatterConvert
 ): string {
 	try {
-		text = text.replace(/^\s*\\\s*$/gim, "<br/>");
+		text = text.replace(/^\s*\\\s*$/gim, '<br/>');
 		if (frontmatter.hardbreak) {
-			text = text.replace(/\n/gm, "  \n");
+			text = text.replace(/\n/gm, '  \n');
 		}
 		return text;
 	} catch (e) {
@@ -53,15 +53,17 @@ export function addHardLineBreak(
 }
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
-function tagsToYaml(toAdd: string[], settings: GitHubPublisherSettings, yaml: any) {
+function tagsToYaml(
+	toAdd: string[],
+	settings: GitHubPublisherSettings,
+	yaml: any
+) {
 	if (yaml.tag) {
 		try {
 			toAdd = [
 				...new Set([
 					...toAdd,
-					...yaml.tag.map((tag: string) =>
-						tag.replaceAll("/", "_")
-					),
+					...yaml.tag.map((tag: string) => tag.replaceAll('/', '_')),
 				]),
 			];
 			delete yaml.tag;
@@ -73,9 +75,7 @@ function tagsToYaml(toAdd: string[], settings: GitHubPublisherSettings, yaml: an
 		try {
 			yaml.tags = [
 				...new Set([
-					...yaml.tags.map((tag: string) =>
-						tag.replaceAll("/", "_")
-					),
+					...yaml.tags.map((tag: string) => tag.replaceAll('/', '_')),
 					...toAdd,
 				]),
 			];
@@ -97,28 +97,41 @@ function tagsToYaml(toAdd: string[], settings: GitHubPublisherSettings, yaml: an
  * @returns {Promise<string>} the converted text
  */
 
-export function addToYaml(text: string, toAdd: string[], plugin: GithubPublisher, folderNoteParaMeters: { properties: MultiProperties | null, file: TFile}): string {
+export function addToYaml(
+	text: string,
+	toAdd: string[],
+	plugin: GithubPublisher,
+	folderNoteParaMeters: { properties: MultiProperties | null; file: TFile }
+): string {
 	const properties = folderNoteParaMeters?.properties;
-	const {contentStart, exists, frontmatter} = getFrontMatterInfo(text);
-	if (!properties || (!properties.plugin.settings.conversion.tags.inline && !properties.plugin.settings.upload.folderNote.addTitle)) 
+	const { contentStart, exists, frontmatter } = getFrontMatterInfo(text);
+	if (
+		!properties ||
+		(!properties.plugin.settings.conversion.tags.inline &&
+			!properties.plugin.settings.upload.folderNote.addTitle)
+	)
 		return text;
 	const { settings } = plugin;
-	let yamlObject = parseYaml(exists ? frontmatter:"{}");
+	let yamlObject = parseYaml(exists ? frontmatter : '{}');
 	try {
 		if (yamlObject && toAdd.length > 0) {
 			yamlObject = tagsToYaml(toAdd, settings, yamlObject);
 		}
 		if (folderNoteParaMeters?.properties) {
-			yamlObject = titleToYaml(yamlObject, folderNoteParaMeters.properties, folderNoteParaMeters.file);
+			yamlObject = titleToYaml(
+				yamlObject,
+				folderNoteParaMeters.properties,
+				folderNoteParaMeters.file
+			);
 		}
 		if (yamlObject && Object.keys(yamlObject).length > 0) {
-			return `---\n${stringifyYaml(yamlObject)}---\n${(exists ? text.slice(contentStart) : text)}`;
+			return `---\n${stringifyYaml(yamlObject)}---\n${exists ? text.slice(contentStart) : text}`;
 		}
 	} catch (e) {
-		new Notice(i18next.t("error.parseYaml"));
+		new Notice(i18next.t('error.parseYaml'));
 		return text; //not a valid yaml, skipping
 	}
-	new Notice(i18next.t("error.parseYaml"));
+	new Notice(i18next.t('error.parseYaml'));
 	return text;
 }
 
@@ -134,18 +147,23 @@ function titleToYaml(yaml: any, properties: MultiProperties, file: TFile) {
 	return yaml;
 }
 
-function inlineTags(settings: GitHubPublisherSettings, file: TFile, metadataCache: MetadataCache, frontmatter: FrontMatterCache | undefined | null) {
+function inlineTags(
+	settings: GitHubPublisherSettings,
+	file: TFile,
+	metadataCache: MetadataCache,
+	frontmatter: FrontMatterCache | undefined | null
+) {
 	if (!settings.conversion.tags.inline) {
 		return [];
 	}
 	const inlineTags = metadataCache.getFileCache(file)?.tags;
 	const inlineTagsInText = inlineTags
-		? inlineTags.map((t) => t.tag.replace("#", "").replaceAll("/", "_"))
+		? inlineTags.map(t => t.tag.replace('#', '').replaceAll('/', '_'))
 		: [];
 	const frontmatterTags = parseFrontMatterTags(frontmatter);
 
 	const yamlTags = frontmatterTags
-		? frontmatterTags.map((t) => t.replace("#", "").replaceAll("/", "_"))
+		? frontmatterTags.map(t => t.replace('#', '').replaceAll('/', '_'))
 		: [];
 	return [...new Set([...inlineTagsInText, ...yamlTags])];
 }
@@ -172,21 +190,19 @@ export async function processYaml(
 	return addToYaml(text, toAdd, plugin, folderNoteParaMeters);
 }
 
-
 /**
  * Main function to convert the text
-*/
+ */
 
 export async function mainConverting(
 	text: string,
 	file: TFile,
 	frontmatter: FrontMatterCache | undefined | null,
 	linkedFiles: LinkedNotes[],
-	properties: MultiProperties,
-
+	properties: MultiProperties
 ): Promise<string> {
 	const { plugin } = properties;
-	if (properties.frontmatter.general.removeEmbed === "bake")
+	if (properties.frontmatter.general.removeEmbed === 'bake')
 		text = await bakeEmbeds(file, new Set(), properties, null, linkedFiles);
 	text = findAndReplaceText(text, plugin.settings, false);
 	text = await processYaml(file, frontmatter, text, properties);
@@ -197,7 +213,13 @@ export async function mainConverting(
 		frontmatter,
 		properties
 	);
-	text = convertWikilinks(text, properties.frontmatter.general, linkedFiles, plugin.settings, frontmatter);
+	text = convertWikilinks(
+		text,
+		properties.frontmatter.general,
+		linkedFiles,
+		plugin.settings,
+		frontmatter
+	);
 	text = await convertDataviewQueries(
 		text,
 		file.path,
@@ -206,9 +228,11 @@ export async function mainConverting(
 		properties
 	);
 	text = await convertInlineDataview(text, plugin, file);
-	text = addHardLineBreak(text, plugin.settings, properties.frontmatter.general);
+	text = addHardLineBreak(
+		text,
+		plugin.settings,
+		properties.frontmatter.general
+	);
 
 	return findAndReplaceText(text, plugin.settings, true);
 }
-
-

@@ -8,4 +8,3 @@ contat_links:
     about: Please report bugs here.
   - name: Request a Feature (Plugin)
     url: https://github.com/ObsidianPublisher/obsidian-github-publisher/issues/new?assignees=lisandra-dev&labels=enhancement&template=request_form_plugin.yml&title=%5BFR%5D%3A+
-

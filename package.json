@@ -1,6 +1,6 @@
 {
-	"name": "obsidian-github-publisher",
-	"version": "7.0.3",
+	"name": "obsidian-simple-publisher",
+	"version": "1.0.0",
 	"description": "Github Publisher is a plugin that help you to send file in a configured Github Repository, based on a frontmatter entry state.",
 	"main": "main.js",
 	"scripts": {
@@ -13,13 +13,14 @@
 		"bump": "node commit-and-tag-version.js",
 		"postbump": "git push --follow-tags origin master",
 		"predeploy": "pnpm run bump",
-		"deploy": "pnpm run export"
+		"deploy": "pnpm run export",
+		"prepare": "husky"
 	},
 	"commit-and-tag-version": {
 		"t": ""
 	},
 	"keywords": [],
-	"author": "Mara",
+	"author": "sbusso",
 	"license": "AGPL-3.0",
 	"devDependencies": {
 		"@babel/core": "^7.23.9",
@@ -42,6 +43,7 @@
 		"dotenv": "^16.4.4",
 		"esbuild": "^0.20.0",
 		"eslint": "^8.56.0",
+		"eslint-config-prettier": "^9.1.0",
 		"eslint-config-standard": "^17.1.0",
 		"eslint-plugin-import": "^2.29.1",
 		"eslint-plugin-json": "^3.1.0",
@@ -72,5 +74,8 @@
 			"svelte@<3.49.0": ">=3.49.0",
 			"got@<11.8.5": ">=11.8.5"
 		}
+	},
+	"lint-staged": {
+		"**/*": "prettier --write --ignore-unknown"
 	}
 }

@@ -1,5 +1,5 @@
-import {Octokit} from "@octokit/core";
-import i18next from "i18next";
+import { Octokit } from '@octokit/core';
+import i18next from 'i18next';
 import {
 	App,
 	ButtonComponent,
@@ -8,14 +8,14 @@ import {
 	Notice,
 	Platform,
 	Setting,
-	TextAreaComponent} from "obsidian";
+	TextAreaComponent,
+} from 'obsidian';
 
-import GithubPublisher from "../../main";
-import {GithubPublisherSettingsTab} from "../../settings";
-import {logs, notif} from "../../utils";
-import {GitHubPublisherSettings, Preset} from "../interface";
-import { migrateSettings,OldSettings } from "../migrate";
-
+import GithubPublisher from '../../main';
+import { GithubPublisherSettingsTab } from '../../settings';
+import { logs, notif } from '../../utils';
+import { GitHubPublisherSettings, Preset } from '../interface';
+import { migrateSettings, OldSettings } from '../migrate';
 
 export type SettingValue = number | string | boolean | unknown;
 
@@ -33,7 +33,12 @@ export class ImportModal extends Modal {
 	settingsPage: HTMLElement;
 	settingsTab: GithubPublisherSettingsTab;
 	settings: GitHubPublisherSettings;
-	constructor(app: App, plugin: GithubPublisher, settingsPage: HTMLElement, settingsTab: GithubPublisherSettingsTab) {
+	constructor(
+		app: App,
+		plugin: GithubPublisher,
+		settingsPage: HTMLElement,
+		settingsTab: GithubPublisherSettingsTab
+	) {
 		super(app);
 		this.plugin = plugin;
 		this.settingsPage = settingsPage;
@@ -42,10 +47,11 @@ export class ImportModal extends Modal {
 	}
 
 	async censorRepositoryData(original: GitHubPublisherSettings) {
-		logs({settings: original}, "original settings:", original);
+		logs({ settings: original }, 'original settings:', original);
 		this.settings.plugin.dev = original.plugin.dev;
 		this.settings.plugin.migrated = original.plugin.migrated;
-		this.settings.plugin.displayModalRepoEditing = original.plugin.displayModalRepoEditing;
+		this.settings.plugin.displayModalRepoEditing =
+			original.plugin.displayModalRepoEditing;
 		this.settings.plugin.noticeError = original.plugin.noticeError;
 		this.settings.plugin.copyLink.addCmd = original.plugin.copyLink.addCmd;
 		this.settings.plugin.fileMenu = original.plugin.fileMenu;
@@ -57,35 +63,44 @@ export class ImportModal extends Modal {
 	}
 
 	onOpen() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 
 		new Setting(contentEl)
-			.setName(i18next.t("modals.import.title") )
-			.setDesc(i18next.t("modals.import.desc") );
+			.setName(i18next.t('modals.import.title'))
+			.setDesc(i18next.t('modals.import.desc'));
 
-		new Setting(contentEl).then((setting) => {
+		new Setting(contentEl).then(setting => {
 			// Build an error message container
 			const errorSpan = createSpan({
-				cls: "github-publisher-import-error",
-				text: i18next.t("modals.import.error.span") ,
+				cls: 'github-publisher-import-error',
+				text: i18next.t('modals.import.error.span'),
 			});
 			setting.nameEl.appendChild(errorSpan);
 			const importAndClose = async (str: string) => {
 				if (str) {
 					try {
 						let importedSettings = JSON.parse(str);
-						if (Object.keys(importedSettings).includes("editorMenu")) {
+						if (Object.keys(importedSettings).includes('editorMenu')) {
 							//need to convert old settings to new settings
 							const oldSettings = importedSettings as unknown as OldSettings;
 							await migrateSettings(oldSettings, this.plugin, true);
-							logs({settings: this.plugin.settings}, i18next.t("informations.migrating.oldSettings"));
+							logs(
+								{ settings: this.plugin.settings },
+								i18next.t('informations.migrating.oldSettings')
+							);
 						} else {
-							logs({settings: this.plugin.settings}, i18next.t("informations.migrating.normalFormat"));
-							importedSettings = importedSettings as unknown as GitHubPublisherSettings;
+							logs(
+								{ settings: this.plugin.settings },
+								i18next.t('informations.migrating.normalFormat')
+							);
+							importedSettings =
+								importedSettings as unknown as GitHubPublisherSettings;
 							//create a copy of actual settings
 							const actualSettings = clone(this.plugin.settings);
 							if (!(importedSettings.upload.replaceTitle instanceof Array)) {
-								importedSettings.upload.replaceTitle = [importedSettings.upload.replaceTitle];
+								importedSettings.upload.replaceTitle = [
+									importedSettings.upload.replaceTitle,
+								];
 							}
 
 							for (const [key, value] of Object.entries(importedSettings)) {
@@ -97,28 +112,30 @@ export class ImportModal extends Modal {
 						}
 						this.close();
 					} catch (e) {
-						errorSpan.addClass("active");
-						errorSpan.setText(`${i18next.t("modals.import.error.span")}${e}`);
+						errorSpan.addClass('active');
+						errorSpan.setText(`${i18next.t('modals.import.error.span')}${e}`);
 					}
 				} else {
-					errorSpan.addClass("active");
-					errorSpan.setText(`${i18next.t("modals.import.error.span")}: ${i18next.t("modals.import.error.isEmpty")}`);
+					errorSpan.addClass('active');
+					errorSpan.setText(
+						`${i18next.t('modals.import.error.span')}: ${i18next.t('modals.import.error.isEmpty')}`
+					);
 				}
 			};
 			setting.controlEl.createEl(
-				"input",
+				'input',
 				{
-					cls: "github-publisher-import-input",
+					cls: 'github-publisher-import-input',
 					attr: {
-						id: "github-publisher-import-input",
-						name: "github-publisher-import-input",
-						type: "file",
-						accept: ".json",
+						id: 'github-publisher-import-input',
+						name: 'github-publisher-import-input',
+						type: 'file',
+						accept: '.json',
 					},
 				},
-				(importInput) => {
+				importInput => {
 					// Set up a FileReader so we can parse the file contents
-					importInput.addEventListener("change", (e) => {
+					importInput.addEventListener('change', e => {
 						const reader = new FileReader();
 
 						reader.onload = async (e: ProgressEvent<FileReader>) => {
@@ -131,22 +148,25 @@ export class ImportModal extends Modal {
 			);
 
 			// Build a label we will style as a link
-			setting.controlEl.createEl("label", {
-				cls: "github-publisher-import-label",
-				text: i18next.t("modals.import.importFromFile") ,
+			setting.controlEl.createEl('label', {
+				cls: 'github-publisher-import-label',
+				text: i18next.t('modals.import.importFromFile'),
 				attr: {
-					for: "github-publisher-import-input",
+					for: 'github-publisher-import-input',
 				},
 			});
 
 			const textArea = new TextAreaComponent(contentEl)
-				.setPlaceholder(i18next.t("modals.import.paste") ).then((ta) => {
-					const saveButton = new ButtonComponent(contentEl).setButtonText(i18next.t("common.save") ).onClick(async () => {
-						await importAndClose(ta.getValue().trim());
-					});
-					saveButton.buttonEl.addClass("github-publisher-import-save-button");
+				.setPlaceholder(i18next.t('modals.import.paste'))
+				.then(ta => {
+					const saveButton = new ButtonComponent(contentEl)
+						.setButtonText(i18next.t('common.save'))
+						.onClick(async () => {
+							await importAndClose(ta.getValue().trim());
+						});
+					saveButton.buttonEl.addClass('github-publisher-import-save-button');
 				});
-			textArea.inputEl.addClass("github-publisher-import-textarea");
+			textArea.inputEl.addClass('github-publisher-import-textarea');
 		});
 	}
 
@@ -155,32 +175,36 @@ export class ImportModal extends Modal {
 		contentEl.empty();
 		this.settingsPage.empty();
 		// @ts-ignore
-		let openedTab = this.plugin.settings.tabsID ?? document.querySelector(".settings-tab.settings-tab-active") ? document.querySelector(".settings-tab.settings-tab-active .settings-tab-name").innerText : i18next.t("settings.github.title") ;
+		let openedTab =
+			this.plugin.settings.tabsID ??
+			document.querySelector('.settings-tab.settings-tab-active')
+				? document.querySelector(
+						'.settings-tab.settings-tab-active .settings-tab-name'
+					).innerText
+				: i18next.t('settings.github.title');
 		openedTab = openedTab.trim();
 		switch (openedTab) {
-		case i18next.t("settings.github.title") :
-			this.settingsTab.renderGithubConfiguration();
-			break;
-		case i18next.t("settings.upload.title"):
-			this.settingsTab.renderUploadConfiguration();
-			break;
-		case i18next.t("settings.conversion.title") :
-			this.settingsTab.renderTextConversion();
-			break;
-		case i18next.t("settings.embed.title") :
-			this.settingsTab.renderEmbedConfiguration();
-			break;
-		case i18next.t("settings.plugin.title") :
-			this.settingsTab.renderPluginSettings();
-			break;
-		case i18next.t("settings.help.title") :
-			this.settingsTab.renderHelp();
-			break;
+			case i18next.t('settings.github.title'):
+				this.settingsTab.renderGithubConfiguration();
+				break;
+			case i18next.t('settings.upload.title'):
+				this.settingsTab.renderUploadConfiguration();
+				break;
+			case i18next.t('settings.conversion.title'):
+				this.settingsTab.renderTextConversion();
+				break;
+			case i18next.t('settings.embed.title'):
+				this.settingsTab.renderEmbedConfiguration();
+				break;
+			case i18next.t('settings.plugin.title'):
+				this.settingsTab.renderPluginSettings();
+				break;
+			case i18next.t('settings.help.title'):
+				this.settingsTab.renderHelp();
+				break;
 		}
-
 	}
 }
-
 
 export class ExportModal extends Modal {
 	plugin: GithubPublisher;
@@ -193,8 +217,7 @@ export class ExportModal extends Modal {
 	censorGithubSettingsData(censuredSettings: GitHubPublisherSettings) {
 		const cloneCensored = Object(censuredSettings);
 		const { github } = cloneCensored;
-		if (cloneCensored.tabsID)
-			delete cloneCensored.tabsID;
+		if (cloneCensored.tabsID) delete cloneCensored.tabsID;
 		if (github) {
 			delete github.repo;
 			delete github.user;
@@ -212,80 +235,95 @@ export class ExportModal extends Modal {
 	}
 
 	onOpen() {
-		const {contentEl, modalEl} = this;
-		modalEl.addClass("modal-github-publisher");
+		const { contentEl, modalEl } = this;
+		modalEl.addClass('modal-github-publisher');
 		new Setting(contentEl)
-			.setName(i18next.t("modals.export.title") )
-			.setDesc(i18next.t("modals.export.desc") )
-			.then((setting) => {
+			.setName(i18next.t('modals.export.title'))
+			.setDesc(i18next.t('modals.export.desc'))
+			.then(setting => {
 				//create a copy of the settings object
-				const censuredSettings = this.censorGithubSettingsData(clone(this.plugin.settings));
+				const censuredSettings = this.censorGithubSettingsData(
+					clone(this.plugin.settings)
+				);
 				const output = JSON.stringify(censuredSettings, null, 2);
-				setting.controlEl.createEl("a",
+				setting.controlEl.createEl(
+					'a',
 					{
-						cls: "github-publisher-copy",
-						text: i18next.t("modals.export.copy") ,
-						href: "#",
+						cls: 'github-publisher-copy',
+						text: i18next.t('modals.export.copy'),
+						href: '#',
 					},
-					(copyButton) => {
-						const textArea = new TextAreaComponent(contentEl).setValue(output).then((textarea) => {
-							copyButton.addEventListener("click", (e) => {
-								e.preventDefault();
+					copyButton => {
+						const textArea = new TextAreaComponent(contentEl)
+							.setValue(output)
+							.then(textarea => {
+								copyButton.addEventListener('click', e => {
+									e.preventDefault();
 
-								// Select the textarea contents and copy them to the clipboard
-								textarea.inputEl.select();
-								textarea.inputEl.setSelectionRange(0, 99999);
-								document.execCommand("copy");
+									// Select the textarea contents and copy them to the clipboard
+									textarea.inputEl.select();
+									textarea.inputEl.setSelectionRange(0, 99999);
+									document.execCommand('copy');
 
-								copyButton.addClass("success");
+									copyButton.addClass('success');
 
-								setTimeout(() => {
-									// If the button is still in the dom, remove the success class
-									if (copyButton.parentNode) {
-										copyButton.removeClass("success");
-									}
-								}, 2000);
+									setTimeout(() => {
+										// If the button is still in the dom, remove the success class
+										if (copyButton.parentNode) {
+											copyButton.removeClass('success');
+										}
+									}, 2000);
+								});
 							});
-						});
-						textArea.inputEl.addClass("github-publisher-export-textarea");
-					});
+						textArea.inputEl.addClass('github-publisher-export-textarea');
+					}
+				);
 
 				if (Platform.isDesktop) {
-					setting.controlEl.createEl("a", {
-						cls: "github-publisher-download",
-						text: i18next.t("modals.export.download") ,
+					setting.controlEl.createEl('a', {
+						cls: 'github-publisher-download',
+						text: i18next.t('modals.export.download'),
 						attr: {
-							download: "github-publisher.json",
+							download: 'github-publisher.json',
 							href: `data:application/json;charset=utf-8,${encodeURIComponent(output)}`,
 						},
 					});
 				} else if (Platform.isMobile) {
-					setting.addButton((b) =>
-						b
-							.setButtonText(i18next.t("modals.export.download") )
-							.onClick(() => {
-								// Can't use the method above on mobile, so we'll just open a new tab
-								//create a temporary file
-								this.app.vault.adapter.write(`${this.app.vault.configDir}/plugins/obsidian-mkdocs-publisher/._tempSettings.json`, output);
-								//open the file with default application
-								//eslint-disable-next-line
-								(this.app as any).openWithDefaultApp(`${this.app.vault.configDir}/plugins/obsidian-mkdocs-publisher/._tempSettings.json`);
-							}));
+					setting.addButton(b =>
+						b.setButtonText(i18next.t('modals.export.download')).onClick(() => {
+							// Can't use the method above on mobile, so we'll just open a new tab
+							//create a temporary file
+							this.app.vault.adapter.write(
+								`${this.app.vault.configDir}/plugins/obsidian-mkdocs-publisher/._tempSettings.json`,
+								output
+							);
+							//open the file with default application
+							//eslint-disable-next-line
+							(this.app as any).openWithDefaultApp(
+								`${this.app.vault.configDir}/plugins/obsidian-mkdocs-publisher/._tempSettings.json`
+							);
+						})
+					);
 				}
 			});
 	}
 
 	onClose() {
-		try{
-			this.app.vault.adapter.trashSystem(`${this.app.vault.configDir}/plugins/obsidian-mkdocs-publisher/._tempSettings.json`);
-		}catch(e){
-			logs({settings: this.plugin.settings}, "Error while deleting temporary file", e);
+		try {
+			this.app.vault.adapter.trashSystem(
+				`${this.app.vault.configDir}/plugins/obsidian-mkdocs-publisher/._tempSettings.json`
+			);
+		} catch (e) {
+			logs(
+				{ settings: this.plugin.settings },
+				'Error while deleting temporary file',
+				e
+			);
 		}
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.empty();
 	}
 }
-
 
 export class ImportLoadPreset extends FuzzySuggestModal<Preset> {
 	octokit: Octokit;
@@ -294,8 +332,13 @@ export class ImportLoadPreset extends FuzzySuggestModal<Preset> {
 	page: GithubPublisherSettingsTab;
 	settings: GitHubPublisherSettings;
 
-
-	constructor(app: App, plugin: GithubPublisher, presetList: Preset[], octokit: Octokit, page: GithubPublisherSettingsTab) {
+	constructor(
+		app: App,
+		plugin: GithubPublisher,
+		presetList: Preset[],
+		octokit: Octokit,
+		page: GithubPublisherSettingsTab
+	) {
 		super(app);
 		this.plugin = plugin;
 		this.presetList = presetList;
@@ -315,11 +358,13 @@ export class ImportLoadPreset extends FuzzySuggestModal<Preset> {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	onChooseItem(item: Preset, evt: MouseEvent | KeyboardEvent): void {
 		const presetSettings = item.settings;
-		logs({settings: presetSettings},"onChooseItem");
+		logs({ settings: presetSettings }, 'onChooseItem');
 		try {
 			const original = clone(this.plugin.settings);
 			if (!(presetSettings.upload.replaceTitle instanceof Array)) {
-				presetSettings.upload.replaceTitle = [presetSettings.upload.replaceTitle];
+				presetSettings.upload.replaceTitle = [
+					presetSettings.upload.replaceTitle,
+				];
 			}
 
 			for (const [key, value] of Object.entries(presetSettings)) {
@@ -328,7 +373,8 @@ export class ImportLoadPreset extends FuzzySuggestModal<Preset> {
 			}
 			this.settings.plugin.dev = original.plugin.dev;
 			this.settings.plugin.migrated = original.plugin.migrated;
-			this.settings.plugin.displayModalRepoEditing = original.plugin.displayModalRepoEditing;
+			this.settings.plugin.displayModalRepoEditing =
+				original.plugin.displayModalRepoEditing;
 			this.settings.plugin.noticeError = original.plugin.noticeError;
 			this.settings.plugin.copyLink.addCmd = original.plugin.copyLink.addCmd;
 			this.settings.plugin.fileMenu = original.plugin.fileMenu;
@@ -340,33 +386,38 @@ export class ImportLoadPreset extends FuzzySuggestModal<Preset> {
 			this.settings.tabsID = original.tabsID;
 
 			this.plugin.saveSettings();
-			this.page.renderSettingsPage("github-configuration");
-
+			this.page.renderSettingsPage('github-configuration');
 		} catch (e) {
-			new Notice(i18next.t("modals.import.error.span") + e);
-			notif({settings: this.settings}, "onChooseItem", e);
+			new Notice(i18next.t('modals.import.error.span') + e);
+			notif({ settings: this.settings }, 'onChooseItem', e);
 		}
 	}
 }
 
-export async function loadAllPresets(octokit: Octokit, plugin: GithubPublisher): Promise<Preset[]> {
+export async function loadAllPresets(
+	octokit: Octokit,
+	plugin: GithubPublisher
+): Promise<Preset[]> {
 	//load from gitHub repository
 
-	const githubPreset = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
-		owner: "ObsidianPublisher",
-		repo: "plugin-presets",
-		path: "presets",
-	});
+	const githubPreset = await octokit.request(
+		'GET /repos/{owner}/{repo}/contents/{path}',
+		{
+			owner: 'ObsidianPublisher',
+			repo: 'plugin-presets',
+			path: 'presets',
+		}
+	);
 
 	//create a list
 	const presetList: Preset[] = [];
 	if (!Array.isArray(githubPreset.data)) {
 		return presetList;
 	}
-	logs({settings: plugin.settings}, "LoadAllPreset", githubPreset);
+	logs({ settings: plugin.settings }, 'LoadAllPreset', githubPreset);
 	for (const preset of githubPreset.data) {
-		if (preset.name.endsWith(".json")) {
-			const presetName = preset.name.replace(".json", "");
+		if (preset.name.endsWith('.json')) {
+			const presetName = preset.name.replace('.json', '');
 			presetList.push({
 				name: presetName,
 				settings: await loadPresetContent(preset.path, octokit, plugin),
@@ -376,13 +427,20 @@ export async function loadAllPresets(octokit: Octokit, plugin: GithubPublisher):
 	return presetList;
 }
 
-export async function loadPresetContent(path: string, octokit: Octokit, plugin: GithubPublisher): Promise<GitHubPublisherSettings> {
-	const presetContent = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
-		owner: "ObsidianPublisher",
-		repo: "plugin-presets",
-		path,
-	});
-		// @ts-ignore
+export async function loadPresetContent(
+	path: string,
+	octokit: Octokit,
+	plugin: GithubPublisher
+): Promise<GitHubPublisherSettings> {
+	const presetContent = await octokit.request(
+		'GET /repos/{owner}/{repo}/contents/{path}',
+		{
+			owner: 'ObsidianPublisher',
+			repo: 'plugin-presets',
+			path,
+		}
+	);
+	// @ts-ignore
 	if (!presetContent.data?.content) {
 		return plugin.settings;
 	}

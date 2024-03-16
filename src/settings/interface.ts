@@ -1,19 +1,19 @@
-import { TFile } from "obsidian";
+import { TFile } from 'obsidian';
 
-import GithubPublisher from "../main";
+import GithubPublisher from '../main';
 
 export enum TypeOfEditRegex {
-	path = "path",
-	title = "title",
+	path = 'path',
+	title = 'title',
 }
 
 export enum EnumbSettingsTabId {
-	github = "github-configuration",
-	upload = "upload-configuration",
-	text = "text-conversion",
-	embed = "embed-configuration",
-	plugin = "plugin-settings",
-	help = "help",
+	github = 'github-configuration',
+	upload = 'upload-configuration',
+	text = 'text-conversion',
+	embed = 'embed-configuration',
+	plugin = 'plugin-settings',
+	help = 'help',
 }
 
 export interface RegexReplace {
@@ -34,30 +34,29 @@ export interface Repository {
 	api: {
 		tiersForApi: GithubTiersVersion;
 		hostname: string;
-	}
+	};
 	workflow: {
 		commitMessage: string;
 		name: string;
-	}
+	};
 	createShortcuts: boolean;
 	shareKey: string;
 	shareAll?: {
 		enable: boolean;
 		excludedFileName: string;
-	}
+	};
 	copyLink: {
 		links: string;
 		removePart: string[];
 		transform: {
 			toUri: boolean;
-			slugify: "lower" | "strict" | "disable";
+			slugify: 'lower' | 'strict' | 'disable';
 			applyRegex: {
 				regex: string;
 				replacement: string;
-			}[]
-		}
-	}
-
+			}[];
+		};
+	};
 }
 
 /**
@@ -75,19 +74,19 @@ export interface GitHubPublisherSettings {
 		dryRun: {
 			enable: boolean;
 			folderName: string;
-		}
+		};
 		api: {
 			tiersForApi: GithubTiersVersion;
 			hostname: string;
-		}
+		};
 		workflow: {
 			commitMessage: string;
 			name: string;
-		},
+		};
 		otherRepo: Repository[];
 		verifiedRepo?: boolean;
 		rateLimit: number;
-	}
+	};
 	upload: {
 		behavior: FolderSettings;
 		defaultName: string;
@@ -96,13 +95,13 @@ export interface GitHubPublisherSettings {
 		frontmatterTitle: {
 			enable: boolean;
 			key: string;
-		}
-		replaceTitle: RegexReplace[],
-		replacePath: RegexReplace[],
+		};
+		replaceTitle: RegexReplace[];
+		replacePath: RegexReplace[];
 		autoclean: {
 			enable: boolean;
 			excluded: string[];
-		}
+		};
 		folderNote: {
 			enable: boolean;
 			rename: string;
@@ -110,9 +109,9 @@ export interface GitHubPublisherSettings {
 				enable: boolean;
 				key: string;
 			};
-		}
+		};
 		metadataExtractorPath: string;
-	}
+	};
 	conversion: {
 		hardbreak: boolean;
 		dataview: boolean;
@@ -121,14 +120,14 @@ export interface GitHubPublisherSettings {
 			inline: boolean;
 			exclude: string[];
 			fields: string[];
-		}
+		};
 		links: {
 			internal: boolean;
 			unshared: boolean;
 			wiki: boolean;
-			slugify: "disable" | "strict" | "lower" | boolean;
-		}
-	}
+			slugify: 'disable' | 'strict' | 'lower' | boolean;
+		};
+	};
 	embed: {
 		attachments: boolean;
 		overrideAttachments: OverrideAttachments[];
@@ -136,20 +135,19 @@ export interface GitHubPublisherSettings {
 		keySendFile: string[];
 		notes: boolean;
 		folder: string;
-		convertEmbedToLinks: "links" | "remove" | "keep" | "bake";
+		convertEmbedToLinks: 'links' | 'remove' | 'keep' | 'bake';
 		charConvert: string;
 		bake?: {
 			textBefore: string;
 			textAfter: string;
 		};
-	}
-	plugin:
-	{
+	};
+	plugin: {
 		shareKey: string;
 		shareAll?: {
 			enable: boolean;
 			excludedFileName: string;
-		}
+		};
 		fileMenu: boolean;
 		editorMenu: boolean;
 		excludedFolder: string[];
@@ -160,33 +158,30 @@ export interface GitHubPublisherSettings {
 			addCmd: boolean;
 			transform: {
 				toUri: boolean;
-				slugify: "lower" | "strict" | "disable";
+				slugify: 'lower' | 'strict' | 'disable';
 				applyRegex: {
 					regex: string;
 					replacement: string;
-				}[]
-			}
-		}
+				}[];
+			};
+		};
 		noticeError: boolean;
 		dev?: boolean;
 		displayModalRepoEditing: boolean;
 		migrated?: boolean;
 		saveTabId?: boolean;
 		setFrontmatterKey: string;
-
-	}
+	};
 }
-
-
 
 /**
  * Allow to set a value for the folder settings
  * @enum FolderSettings
  */
 export enum FolderSettings {
-	yaml = "yaml",
-	obsidian = "obsidian",
-	fixed = "fixed",
+	yaml = 'yaml',
+	obsidian = 'obsidian',
+	fixed = 'fixed',
 }
 
 /**
@@ -194,8 +189,8 @@ export enum FolderSettings {
  * @description Allow to set a value for the github tiers
  */
 export enum GithubTiersVersion {
-	free = "Github Free/Pro/Team (default)",
-	entreprise = "Enterprise",
+	free = 'Github Free/Pro/Team (default)',
+	entreprise = 'Enterprise',
 }
 
 export interface MultiProperties {
@@ -203,7 +198,7 @@ export interface MultiProperties {
 	frontmatter: {
 		general: FrontmatterConvert;
 		repo: RepoFrontmatter | RepoFrontmatter[];
-	},
+	};
 	repository: Repository | null;
 	filepath: string;
 }
@@ -212,8 +207,8 @@ export interface MonoProperties {
 	plugin: GithubPublisher;
 	frontmatter: {
 		general: FrontmatterConvert;
-		repo: RepoFrontmatter
-	},
+		repo: RepoFrontmatter;
+	};
 	repository: Repository | null;
 	filepath: string;
 }
@@ -228,31 +223,30 @@ export interface MultiRepoProperties {
 	repo: Repository | null;
 }
 
-
 /**
  * Just a constant for the token path
  * @type {string} TOKEN_PATH
  */
-export const TOKEN_PATH: string = "%configDir%/plugins/%pluginID%/env";
+export const TOKEN_PATH: string = '%configDir%/plugins/%pluginID%/env';
 
 export const DEFAULT_SETTINGS: Partial<GitHubPublisherSettings> = {
 	github: {
-		user: "",
-		repo: "",
-		branch: "main",
+		user: '',
+		repo: '',
+		branch: 'main',
 		automaticallyMergePR: true,
 		dryRun: {
 			enable: false,
-			folderName: "github-publisher",
+			folderName: 'github-publisher',
 		},
 		tokenPath: TOKEN_PATH,
 		api: {
 			tiersForApi: GithubTiersVersion.free,
-			hostname: "",
+			hostname: '',
 		},
 		workflow: {
-			commitMessage: "[PUBLISHER] Merge",
-			name: "",
+			commitMessage: '[PUBLISHER] Merge',
+			name: '',
 		},
 		otherRepo: [],
 		verifiedRepo: false,
@@ -260,12 +254,12 @@ export const DEFAULT_SETTINGS: Partial<GitHubPublisherSettings> = {
 	},
 	upload: {
 		behavior: FolderSettings.fixed,
-		defaultName: "",
-		rootFolder: "",
-		yamlFolderKey: "",
+		defaultName: '',
+		rootFolder: '',
+		yamlFolderKey: '',
 		frontmatterTitle: {
 			enable: false,
-			key: "title",
+			key: 'title',
 		},
 		replaceTitle: [],
 		replacePath: [],
@@ -275,13 +269,13 @@ export const DEFAULT_SETTINGS: Partial<GitHubPublisherSettings> = {
 		},
 		folderNote: {
 			enable: false,
-			rename: "index.md",
+			rename: 'index.md',
 			addTitle: {
 				enable: false,
-				key: "title",
-			}
+				key: 'title',
+			},
 		},
-		metadataExtractorPath: "",
+		metadataExtractorPath: '',
 	},
 	conversion: {
 		hardbreak: false,
@@ -296,7 +290,7 @@ export const DEFAULT_SETTINGS: Partial<GitHubPublisherSettings> = {
 			internal: false,
 			unshared: false,
 			wiki: false,
-			slugify: "disable",
+			slugify: 'disable',
 		},
 	},
 	embed: {
@@ -304,30 +298,30 @@ export const DEFAULT_SETTINGS: Partial<GitHubPublisherSettings> = {
 		overrideAttachments: [],
 		keySendFile: [],
 		notes: false,
-		folder: "",
-		convertEmbedToLinks: "keep",
-		charConvert: "->",
+		folder: '',
+		convertEmbedToLinks: 'keep',
+		charConvert: '->',
 	},
 	plugin: {
-		shareKey: "share",
+		shareKey: 'share',
 		fileMenu: false,
 		editorMenu: false,
 		excludedFolder: [],
 		copyLink: {
 			enable: false,
-			links: "",
+			links: '',
 			removePart: [],
 			addCmd: false,
 			transform: {
 				toUri: true,
-				slugify: "lower",
+				slugify: 'lower',
 				applyRegex: [],
-			}
+			},
 		},
 		noticeError: false,
 		displayModalRepoEditing: false,
-		setFrontmatterKey: "Set"
-	}
+		setFrontmatterKey: 'Set',
+	},
 };
 
 /**
@@ -340,7 +334,6 @@ export interface MetadataExtractor {
 	tagsFile: string | null;
 }
 
-
 /**
  * @interface LinkedNotes
  * @description Interface for the linked notes, with the file, the link from, the alt text and the destination file path
@@ -351,11 +344,11 @@ export interface LinkedNotes {
 	altText?: string;
 	destinationFilePath?: string;
 	anchor?: string;
-	type: "embed" | "link";
+	type: 'embed' | 'link';
 	position?: {
 		start: number;
 		end: number;
-	}
+	};
 }
 
 export interface ConvertedLink {
@@ -399,7 +392,7 @@ export interface FrontmatterConvert {
 	embed: boolean;
 	attachmentLinks?: string;
 	convertWiki: boolean;
-	removeEmbed: "keep" | "remove" | "links" | "bake";
+	removeEmbed: 'keep' | 'remove' | 'links' | 'bake';
 	charEmbedLinks: string;
 	dataview: boolean;
 	hardbreak: boolean;
@@ -422,7 +415,7 @@ export interface RepoFrontmatter {
 		enable: boolean;
 		folderName: string;
 		autoclean: boolean;
-	}
+	};
 }
 
 export interface ListEditedFiles {

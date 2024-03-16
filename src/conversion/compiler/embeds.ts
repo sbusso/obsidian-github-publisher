@@ -13,18 +13,23 @@ import {
 	HeadingSubpathResult,
 	parseLinktext,
 	resolveSubpath,
-	TFile} from "obsidian";
-import { getAPI, Link } from "obsidian-dataview";
-import GithubPublisher from "src/main";
+	TFile,
+} from 'obsidian';
+import { getAPI, Link } from 'obsidian-dataview';
+import GithubPublisher from 'src/main';
 
 import {
 	GitHubPublisherSettings,
 	LinkedNotes,
-	MultiProperties} from "../../settings/interface";
-import {isShared} from "../../utils/data_validation_test";
-import { addToYaml } from "..";
-import { createRelativePath, getTitleField, regexOnFileName } from "../file_path";
-
+	MultiProperties,
+} from '../../settings/interface';
+import { isShared } from '../../utils/data_validation_test';
+import { addToYaml } from '..';
+import {
+	createRelativePath,
+	getTitleField,
+	regexOnFileName,
+} from '../file_path';
 
 /**
  * Apply the indent to the text
@@ -47,7 +52,7 @@ function applyIndent(text: string, indent?: string): string {
  * @return {string}
  */
 function stripFirstBullet(text: string): string {
-	return text.replace(/^[ \t]*(?:[-*+]|[0-9]+[.)]) +/, "");
+	return text.replace(/^[ \t]*(?:[-*+]|[0-9]+[.)]) +/, '');
 }
 
 /**
@@ -62,8 +67,8 @@ function dedent(text: string): string {
 	if (firstIndent) {
 		return text.replace(
 			// Escape tab chars
-			new RegExp(`^${firstIndent[0].replace(/\\/g, "\\$&")}`, "gm"),
-			""
+			new RegExp(`^${firstIndent[0].replace(/\\/g, '\\$&')}`, 'gm'),
+			''
 		);
 	}
 	return text;
@@ -77,7 +82,7 @@ function dedent(text: string): string {
  * @return {string}
  */
 function stripBlockId(str: string): string {
-	return str.replace(/ +\^[^ \n\r]+$/gm, "");
+	return str.replace(/ +\^[^ \n\r]+$/gm, '');
 }
 
 /**
@@ -87,7 +92,7 @@ function stripBlockId(str: string): string {
  */
 function stripFrontmatter(text: string): string {
 	if (!text) return text;
-	return text.replace(/^---[\s\S]+?\r?\n---(?:\r?\n\s*|$)/, "");
+	return text.replace(/^---[\s\S]+?\r?\n---(?:\r?\n\s*|$)/, '');
 }
 
 function sanitizeBakedContent(text: string) {
@@ -108,11 +113,11 @@ function extractSubpath(
 	subpathResult: HeadingSubpathResult | BlockSubpathResult,
 	cache: CachedMetadata
 ): string {
-
-	if (subpathResult.type === "block" && subpathResult.list && cache.listItems) {
+	if (subpathResult.type === 'block' && subpathResult.list && cache.listItems) {
 		const targetItem = subpathResult.list;
 		const ancestors = new Set<number>([targetItem.position.start.line]);
-		const start = targetItem.position.start.offset - targetItem.position.start.col;
+		const start =
+			targetItem.position.start.offset - targetItem.position.start.col;
 
 		let end = targetItem.position.end.offset;
 		let found = false;
@@ -155,9 +160,10 @@ export async function bakeEmbeds(
 	originalFile: TFile,
 	ancestor: Set<TFile>,
 	properties: MultiProperties,
-	subpath: string|null,
-	linkedNotes: LinkedNotes[]): Promise<string> {
-	const { plugin } = properties;	
+	subpath: string | null,
+	linkedNotes: LinkedNotes[]
+): Promise<string> {
+	const { plugin } = properties;
 	const { app, settings } = plugin;
 	const { vault, metadataCache } = plugin.app;
 	let text = await vault.cachedRead(originalFile);
@@ -176,9 +182,9 @@ export async function bakeEmbeds(
 	newAncestors.add(originalFile);
 	let posOffset = 0;
 	for (const embed of targets) {
-		const {path, subpath} = parseLinktext(embed.link);
+		const { path, subpath } = parseLinktext(embed.link);
 		const linked = metadataCache.getFirstLinkpathDest(path, originalFile.path);
-		if (linked === null || linked?.extension !== "md") continue;
+		if (linked === null || linked?.extension !== 'md') continue;
 		const start = embed.position.start.offset + posOffset;
 		const end = embed.position.end.offset + posOffset;
 		const prevLen = end - start;
@@ -188,13 +194,25 @@ export async function bakeEmbeds(
 
 		const replaceTarget = async (replacement: string) => {
 			if (settings.embed.bake?.textAfter) {
-				let textAfter = await changeURL(settings.embed.bake?.textAfter, properties, linked, originalFile, linkedNotes);
+				let textAfter = await changeURL(
+					settings.embed.bake?.textAfter,
+					properties,
+					linked,
+					originalFile,
+					linkedNotes
+				);
 				textAfter = changeTitle(textAfter, linked, app, settings);
-				const newLine = replacement.match(/[\s\n]/g) ? "" : "\n";
+				const newLine = replacement.match(/[\s\n]/g) ? '' : '\n';
 				replacement = `${replacement}${newLine}${textAfter}`;
 			}
 			if (settings.embed.bake?.textBefore) {
-				let textBefore = await changeURL(settings.embed.bake?.textBefore, properties, linked, originalFile, linkedNotes);
+				let textBefore = await changeURL(
+					settings.embed.bake?.textBefore,
+					properties,
+					linked,
+					originalFile,
+					linkedNotes
+				);
 				textBefore = changeTitle(textBefore, linked, app, settings);
 				replacement = `${textBefore}\n${replacement}`;
 			}
@@ -203,15 +221,23 @@ export async function bakeEmbeds(
 		};
 
 		const frontmatter = metadataCache.getFileCache(linked)?.frontmatter;
-		const shared = isShared(frontmatter, settings, linked, properties.repository);
+		const shared = isShared(
+			frontmatter,
+			settings,
+			linked,
+			properties.repository
+		);
 		const listMatch = before.match(/(?:^|\n)([ \t]*)(?:[-*+]|[0-9]+[.)]) +$/);
 		if (newAncestors.has(linked) || !shared) {
 			//do nothing
 			continue;
 		}
-		const baked = sanitizeBakedContent(await bakeEmbeds(linked, newAncestors, properties, subpath, linkedNotes));
+		const baked = sanitizeBakedContent(
+			await bakeEmbeds(linked, newAncestors, properties, subpath, linkedNotes)
+		);
 		await replaceTarget(
-			listMatch ? applyIndent(stripFirstBullet(baked), listMatch[1]) : baked);
+			listMatch ? applyIndent(stripFirstBullet(baked), listMatch[1]) : baked
+		);
 	}
 	return text;
 }
@@ -226,17 +252,28 @@ export async function bakeEmbeds(
  * @param linkedNotes {LinkedNotes[]} The linked notes embedded in the file
  * @returns {Promise<string>}
  */
-async function changeURL(textToAdd: string, properties: MultiProperties, linked: TFile, sourceFile: TFile, linkedNotes: LinkedNotes[]): Promise<string> {
+async function changeURL(
+	textToAdd: string,
+	properties: MultiProperties,
+	linked: TFile,
+	sourceFile: TFile,
+	linkedNotes: LinkedNotes[]
+): Promise<string> {
 	const app = properties.plugin.app;
 	const frontmatter = app.metadataCache.getFileCache(linked)?.frontmatter;
 	if (!frontmatter) return textToAdd;
-	const linkedNote = linkedNotes.find((note) => note.linked === linked);
+	const linkedNote = linkedNotes.find(note => note.linked === linked);
 	if (!linkedNote) return textToAdd;
 	if (properties.frontmatter.general.convertInternalLinks) {
-		const relativePath = await createRelativePath(sourceFile, linkedNote, frontmatter, properties);
-		return textToAdd.replace(/\{{2}url\}{2}/gmi, relativePath);
-	} return textToAdd.replace(/\{{2}url\}{2}/gmi, linkedNote.linked.path);
-
+		const relativePath = await createRelativePath(
+			sourceFile,
+			linkedNote,
+			frontmatter,
+			properties
+		);
+		return textToAdd.replace(/\{{2}url\}{2}/gim, relativePath);
+	}
+	return textToAdd.replace(/\{{2}url\}{2}/gim, linkedNote.linked.path);
 }
 
 /**
@@ -247,12 +284,20 @@ async function changeURL(textToAdd: string, properties: MultiProperties, linked:
  * @param settings {GitHubPublisherSettings}
  * @returns {string}
  */
-function changeTitle(textToAdd: string, linked: TFile, app: App, settings: GitHubPublisherSettings):string {
+function changeTitle(
+	textToAdd: string,
+	linked: TFile,
+	app: App,
+	settings: GitHubPublisherSettings
+): string {
 	const title = linked.basename;
 	const frontmatter = app.metadataCache.getFileCache(linked)?.frontmatter;
-	if (!frontmatter) return textToAdd.replace(/\{{2}title\}{2}/gmi, title);
-	const getTitle = regexOnFileName(getTitleField(frontmatter, linked, settings), settings).replace(".md", "");
-	return textToAdd.replace(/\{{2}title\}{2}/gmi, getTitle);
+	if (!frontmatter) return textToAdd.replace(/\{{2}title\}{2}/gim, title);
+	const getTitle = regexOnFileName(
+		getTitleField(frontmatter, linked, settings),
+		settings
+	).replace('.md', '');
+	return textToAdd.replace(/\{{2}title\}{2}/gim, getTitle);
 }
 
 /**
@@ -267,14 +312,14 @@ function changeTitle(textToAdd: string, linked: TFile, app: App, settings: GitHu
 export async function convertInlineDataview(
 	text: string,
 	plugin: GithubPublisher,
-	sourceFile: TFile,
+	sourceFile: TFile
 ): Promise<string> {
-	const {settings, app} = plugin;
+	const { settings, app } = plugin;
 	// @ts-ignore
 	if (
 		settings.conversion.tags.fields.length === 0 ||
 		// @ts-ignore
-		!app.plugins.enabledPlugins.has("dataview")
+		!app.plugins.enabledPlugins.has('dataview')
 	) {
 		return text;
 	}
@@ -290,29 +335,38 @@ export async function convertInlineDataview(
 	for (const field of settings.conversion.tags.fields) {
 		let fieldValue = dataviewLinks[field];
 		if (fieldValue) {
-			if (fieldValue.constructor.name === "Link") {
+			if (fieldValue.constructor.name === 'Link') {
 				fieldValue = fieldValue as Link;
 				const stringifyField = dataviewExtract(fieldValue, settings);
 				if (stringifyField) valueToAdd.push(stringifyField);
 			} else if (fieldValue instanceof Array) {
 				for (const item of fieldValue) {
 					let stringifyField = item;
-					if (item && item.constructor.name === "Link") {
+					if (item && item.constructor.name === 'Link') {
 						stringifyField = dataviewExtract(item as Link, settings);
 						if (stringifyField) valueToAdd.push(stringifyField);
 					} else if (
-						stringifyField && !settings.conversion.tags.exclude.includes(stringifyField.toString() as string)
-					) valueToAdd.push(stringifyField.toString() as string);
+						stringifyField &&
+						!settings.conversion.tags.exclude.includes(
+							stringifyField.toString() as string
+						)
+					)
+						valueToAdd.push(stringifyField.toString() as string);
 				}
 			} else if (
-				!settings.conversion.tags.exclude.includes(fieldValue.toString() as string)
+				!settings.conversion.tags.exclude.includes(
+					fieldValue.toString() as string
+				)
 			) {
 				valueToAdd.push(fieldValue.toString() as string);
 			}
 		}
 	}
 	if (valueToAdd.length > 0) {
-		return addToYaml(text, valueToAdd.filter(Boolean), plugin, {properties: null, file: sourceFile});
+		return addToYaml(text, valueToAdd.filter(Boolean), plugin, {
+			properties: null,
+			file: sourceFile,
+		});
 	}
 	return text;
 }
@@ -325,12 +379,13 @@ export async function convertInlineDataview(
  * @param {GitHubPublisherSettings} settings the global settings
  * @return {string | null} the display text by dataview
  */
-function dataviewExtract(fieldValue: Link, settings: GitHubPublisherSettings): string | null {
+function dataviewExtract(
+	fieldValue: Link,
+	settings: GitHubPublisherSettings
+): string | null {
 	const basename = (name: string) => /([^/\\.]*)(\..*)?$/.exec(name)![1];
 	const filename = basename(fieldValue.path).toString();
-	const display = fieldValue.display
-		? fieldValue.display.toString()
-		: filename;
+	const display = fieldValue.display ? fieldValue.display.toString() : filename;
 	if (
 		!settings.conversion.tags.exclude.includes(display) &&
 		!settings.conversion.tags.fields.includes(filename)
@@ -339,4 +394,3 @@ function dataviewExtract(fieldValue: Link, settings: GitHubPublisherSettings): s
 	}
 	return null;
 }
-

@@ -1,21 +1,14 @@
-import { Octokit } from "@octokit/core";
-import i18next from "i18next";
-import {Notice } from "obsidian";
+import { Octokit } from '@octokit/core';
+import i18next from 'i18next';
+import { Notice } from 'obsidian';
 
-import GithubPublisher from "../main";
-import {
-	RepoFrontmatter,
-} from "../settings/interface";
-import { logs, notif } from "../utils";
-import { FilesManagement } from "./files";
-
+import GithubPublisher from '../main';
+import { RepoFrontmatter } from '../settings/interface';
+import { logs, notif } from '../utils';
+import { FilesManagement } from './files';
 
 export class GithubBranch extends FilesManagement {
-
-	constructor(
-		octokit: Octokit,
-		plugin: GithubPublisher,
-	) {
+	constructor(octokit: Octokit, plugin: GithubPublisher) {
 		super(octokit, plugin);
 	}
 
@@ -24,9 +17,7 @@ export class GithubBranch extends FilesManagement {
 	 * @param {RepoFrontmatter[] | RepoFrontmatter} repoFrontmatter The repo to use
 	 */
 
-	async newBranch(
-		repoFrontmatter: RepoFrontmatter[] | RepoFrontmatter
-	) {
+	async newBranch(repoFrontmatter: RepoFrontmatter[] | RepoFrontmatter) {
 		repoFrontmatter = Array.isArray(repoFrontmatter)
 			? repoFrontmatter
 			: [repoFrontmatter];
@@ -43,11 +34,9 @@ export class GithubBranch extends FilesManagement {
 	 * @return {Promise<boolean>} True if the branch is created
 	 */
 
-	async newBranchOnRepo(
-		repoFrontmatter: RepoFrontmatter
-	): Promise<boolean> {
+	async newBranchOnRepo(repoFrontmatter: RepoFrontmatter): Promise<boolean> {
 		const allBranch = await this.octokit.request(
-			"GET /repos/{owner}/{repo}/branches",
+			'GET /repos/{owner}/{repo}/branches',
 			{
 				owner: repoFrontmatter.owner,
 				repo: repoFrontmatter.repo,
@@ -60,7 +49,7 @@ export class GithubBranch extends FilesManagement {
 		try {
 			const shaMainBranch = mainBranch!.commit.sha;
 			const branch = await this.octokit.request(
-				"POST /repos/{owner}/{repo}/git/refs",
+				'POST /repos/{owner}/{repo}/git/refs',
 				{
 					owner: repoFrontmatter.owner,
 					repo: repoFrontmatter.repo,
@@ -69,16 +58,19 @@ export class GithubBranch extends FilesManagement {
 				}
 			);
 			notif(
-				{settings: this.settings},
-				i18next.t("publish.branch.success", {branchStatus: branch.status, repo: repoFrontmatter})
+				{ settings: this.settings },
+				i18next.t('publish.branch.success', {
+					branchStatus: branch.status,
+					repo: repoFrontmatter,
+				})
 			);
 			return branch.status === 201;
 		} catch (e) {
 			// catch the old branch
 			try {
-				logs({settings: this.settings, e: true}, e);
+				logs({ settings: this.settings, e: true }, e);
 				const allBranch = await this.octokit.request(
-					"GET /repos/{owner}/{repo}/branches",
+					'GET /repos/{owner}/{repo}/branches',
 					{
 						owner: repoFrontmatter.owner,
 						repo: repoFrontmatter.repo,
@@ -87,10 +79,16 @@ export class GithubBranch extends FilesManagement {
 				const mainBranch = allBranch.data.find(
 					(branch: { name: string }) => branch.name === this.branchName
 				);
-				notif({settings: this.settings}, i18next.t("publish.branch.alreadyExists", {branchName:this.branchName, repo: repoFrontmatter}));
+				notif(
+					{ settings: this.settings },
+					i18next.t('publish.branch.alreadyExists', {
+						branchName: this.branchName,
+						repo: repoFrontmatter,
+					})
+				);
 				return !!mainBranch;
 			} catch (e) {
-				notif({settings: this.settings, e: true}, e);
+				notif({ settings: this.settings, e: true }, e);
 				return false;
 			}
 		}
@@ -103,40 +101,40 @@ export class GithubBranch extends FilesManagement {
 	 * @return {Promise<number>} False in case of error, the pull request number otherwise
 	 */
 
-	async pullRequestOnRepo(
-		repoFrontmatter: RepoFrontmatter,
-	): Promise<number> {
+	async pullRequestOnRepo(repoFrontmatter: RepoFrontmatter): Promise<number> {
 		try {
 			const PR = await this.octokit.request(
-				"POST /repos/{owner}/{repo}/pulls",
+				'POST /repos/{owner}/{repo}/pulls',
 				{
 					owner: repoFrontmatter.owner,
 					repo: repoFrontmatter.repo,
-					title: i18next.t("publish.branch.prMessage", {branchName:this.branchName}),
-					body: "",
+					title: i18next.t('publish.branch.prMessage', {
+						branchName: this.branchName,
+					}),
+					body: '',
 					head: this.branchName,
 					base: repoFrontmatter.branch,
 				}
 			);
 			return PR.data.number;
 		} catch (e) {
-			logs({settings: this.settings, e: true}, e);
+			logs({ settings: this.settings, e: true }, e);
 			//trying to get the last open PR number
 			try {
 				const PR = await this.octokit.request(
-					"GET /repos/{owner}/{repo}/pulls",
+					'GET /repos/{owner}/{repo}/pulls',
 					{
 						owner: repoFrontmatter.owner,
 						repo: repoFrontmatter.repo,
-						state: "open",
+						state: 'open',
 					}
 				);
 				return PR.data[0]?.number || 0;
 			} catch (e) {
 				// there is no open PR and impossible to create a new one
 				notif(
-					{settings: this.settings, e: true},
-					i18next.t("publish.branch.error", {error: e, repo: repoFrontmatter})
+					{ settings: this.settings, e: true },
+					i18next.t('publish.branch.error', { error: e, repo: repoFrontmatter })
 				);
 				return 0;
 			}
@@ -150,14 +148,10 @@ export class GithubBranch extends FilesManagement {
 	 * @return {Promise<boolean>} true if the branch is deleted
 	 */
 
-	async deleteBranchOnRepo(
-		repoFrontmatter: RepoFrontmatter
-	): Promise<boolean> {
+	async deleteBranchOnRepo(repoFrontmatter: RepoFrontmatter): Promise<boolean> {
 		try {
 			const branch = await this.octokit.request(
-				"DELETE" +
-					" /repos/{owner}/{repo}/git/refs/heads/" +
-					this.branchName,
+				'DELETE' + ' /repos/{owner}/{repo}/git/refs/heads/' + this.branchName,
 				{
 					owner: repoFrontmatter.owner,
 					repo: repoFrontmatter.repo,
@@ -165,7 +159,7 @@ export class GithubBranch extends FilesManagement {
 			);
 			return branch.status === 200;
 		} catch (e) {
-			logs({settings: this.settings, e: true}, e);
+			logs({ settings: this.settings, e: true }, e);
 			return false;
 		}
 	}
@@ -181,22 +175,25 @@ export class GithubBranch extends FilesManagement {
 		pullRequestNumber: number,
 		repoFrontmatter: RepoFrontmatter
 	) {
-		const commitMsg = repoFrontmatter.commitMsg || repoFrontmatter.commitMsg.trim().length > 0 ? `${repoFrontmatter.commitMsg} #${pullRequestNumber}` : `[PUBLISHER] Merge #${pullRequestNumber}`;
+		const commitMsg =
+			repoFrontmatter.commitMsg || repoFrontmatter.commitMsg.trim().length > 0
+				? `${repoFrontmatter.commitMsg} #${pullRequestNumber}`
+				: `[PUBLISHER] Merge #${pullRequestNumber}`;
 		try {
 			const branch = await this.octokit.request(
-				"PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge",
+				'PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge',
 				{
 					owner: repoFrontmatter.owner,
 					repo: repoFrontmatter.repo,
 					pull_number: pullRequestNumber,
 					commit_title: commitMsg,
-					merge_method: "squash",
+					merge_method: 'squash',
 				}
 			);
 			return branch.status === 200;
 		} catch (e) {
-			notif({settings: this.settings, e: true}, e);
-			new Notice(i18next.t("error.mergeconflic"));
+			notif({ settings: this.settings, e: true }, e);
+			new Notice(i18next.t('error.mergeconflic'));
 			return false;
 		}
 	}
@@ -217,7 +214,7 @@ export class GithubBranch extends FilesManagement {
 		for (const repo of repoFrontmatter) {
 			success.push(await this.updateRepositoryOnOne(repo));
 		}
-		return !success.every((value) => value === false);
+		return !success.every(value => value === false);
 	}
 
 	/**
@@ -231,9 +228,7 @@ export class GithubBranch extends FilesManagement {
 		repoFrontmatter: RepoFrontmatter
 	): Promise<boolean> {
 		try {
-			const pullRequest = await this.pullRequestOnRepo(
-				repoFrontmatter
-			);
+			const pullRequest = await this.pullRequestOnRepo(repoFrontmatter);
 			if (repoFrontmatter.automaticallyMergePR && pullRequest !== 0) {
 				const PRSuccess = await this.mergePullRequestOnRepo(
 					pullRequest,
@@ -247,14 +242,11 @@ export class GithubBranch extends FilesManagement {
 			}
 			return true;
 		} catch (e) {
-			logs({settings: this.settings, e: true}, e);
-			new Notice(i18next.t("error.errorConfig", {repo: repoFrontmatter})
-			);
+			logs({ settings: this.settings, e: true }, e);
+			new Notice(i18next.t('error.errorConfig', { repo: repoFrontmatter }));
 			return false;
 		}
 	}
-
-
 
 	/**
 	 * Use octokit to check if:
@@ -268,64 +260,71 @@ export class GithubBranch extends FilesManagement {
 	 */
 	async checkRepository(
 		repoFrontmatter: RepoFrontmatter | RepoFrontmatter[],
-		silent= true): Promise<void>
-	{
+		silent = true
+	): Promise<void> {
 		repoFrontmatter = Array.isArray(repoFrontmatter)
 			? repoFrontmatter
 			: [repoFrontmatter];
 		for (const repo of repoFrontmatter) {
 			try {
-				const repoExist = await this.octokit.request("GET /repos/{owner}/{repo}", {
-					owner: repo.owner,
-					repo: repo.repo,
-				}).catch((e) => {
-					//check the error code
-					if (e.status === 404) {
-						new Notice(
-							(i18next.t("commands.checkValidity.inRepo.error404", {repo}))
-						);
-					} else if (e.status === 403) {
-						new Notice(
-							(i18next.t("commands.checkValidity.inRepo.error403", {repo}))
-						);
-					} else if (e.status === 301) {
-						new Notice(
-							(i18next.t("commands.checkValidity.inRepo.error301", {repo}))
-						);
-					}
-				});
-				//@ts-ignore
-				if (repoExist.status === 200) {
-					notif({settings: this.settings}, i18next.t("commands.checkValidity.repoExistsTestBranch", {repo}));
-
-					const branchExist = await this.octokit.request("GET /repos/{owner}/{repo}/branches/{branch}", {
+				const repoExist = await this.octokit
+					.request('GET /repos/{owner}/{repo}', {
 						owner: repo.owner,
 						repo: repo.repo,
-						branch: repo.branch,
-					}).catch((e) => {
+					})
+					.catch(e => {
 						//check the error code
 						if (e.status === 404) {
 							new Notice(
-								(i18next.t("commands.checkValidity.inBranch.error404", { repo}))
+								i18next.t('commands.checkValidity.inRepo.error404', { repo })
 							);
 						} else if (e.status === 403) {
 							new Notice(
-								(i18next.t("commands.checkValidity.inBranch.error403", {repo}))
+								i18next.t('commands.checkValidity.inRepo.error403', { repo })
+							);
+						} else if (e.status === 301) {
+							new Notice(
+								i18next.t('commands.checkValidity.inRepo.error301', { repo })
 							);
 						}
 					});
+				//@ts-ignore
+				if (repoExist.status === 200) {
+					notif(
+						{ settings: this.settings },
+						i18next.t('commands.checkValidity.repoExistsTestBranch', { repo })
+					);
+
+					const branchExist = await this.octokit
+						.request('GET /repos/{owner}/{repo}/branches/{branch}', {
+							owner: repo.owner,
+							repo: repo.repo,
+							branch: repo.branch,
+						})
+						.catch(e => {
+							//check the error code
+							if (e.status === 404) {
+								new Notice(
+									i18next.t('commands.checkValidity.inBranch.error404', {
+										repo,
+									})
+								);
+							} else if (e.status === 403) {
+								new Notice(
+									i18next.t('commands.checkValidity.inBranch.error403', {
+										repo,
+									})
+								);
+							}
+						});
 					//@ts-ignore
 					if (branchExist.status === 200 && !silent) {
-						new Notice(
-							(i18next.t("commands.checkValidity.success", {repo}))
-						);
+						new Notice(i18next.t('commands.checkValidity.success', { repo }));
 					}
 				}
 			} catch (e) {
-				logs({settings: this.settings, e: true}, e);
-				new Notice(
-					(i18next.t("commands.checkValidity.error", {repo}))
-				);
+				logs({ settings: this.settings, e: true }, e);
+				new Notice(i18next.t('commands.checkValidity.error', { repo }));
 				break;
 			}
 		}

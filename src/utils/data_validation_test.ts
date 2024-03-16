@@ -1,13 +1,31 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Octokit } from "@octokit/core";
-import i18next from "i18next";
-import { FrontMatterCache, normalizePath,Notice, TFile, TFolder} from "obsidian";
-import GithubPublisher from "src/main";
+import { Octokit } from '@octokit/core';
+import i18next from 'i18next';
+import {
+	FrontMatterCache,
+	normalizePath,
+	Notice,
+	TFile,
+	TFolder,
+} from 'obsidian';
+import GithubPublisher from 'src/main';
 
-import {GithubBranch} from "../GitHub/branch";
-import {FIND_REGEX, FrontmatterConvert, GitHubPublisherSettings, GithubTiersVersion, MultiProperties, RepoFrontmatter, Repository} from "../settings/interface";
-import {logs, notif} from ".";
-import { frontmatterFromFile, getLinkedFrontmatter, getRepoFrontmatter } from "./parse_frontmatter";
+import { GithubBranch } from '../GitHub/branch';
+import {
+	FIND_REGEX,
+	FrontmatterConvert,
+	GitHubPublisherSettings,
+	GithubTiersVersion,
+	MultiProperties,
+	RepoFrontmatter,
+	Repository,
+} from '../settings/interface';
+import { logs, notif } from '.';
+import {
+	frontmatterFromFile,
+	getLinkedFrontmatter,
+	getRepoFrontmatter,
+} from './parse_frontmatter';
 
 /**
  * - Check if the file is a valid file to publish
@@ -22,25 +40,44 @@ import { frontmatterFromFile, getLinkedFrontmatter, getRepoFrontmatter } from ".
 export function isInternalShared(
 	frontmatter: FrontMatterCache | undefined | null,
 	properties: MultiProperties,
-	file: TFile,
+	file: TFile
 ): boolean {
 	const frontmatterSettings = properties.frontmatter.general;
 	if (frontmatterSettings.unshared) {
 		return true;
 	}
 
-	if (properties.repository?.shareAll?.enable)
-	{
+	if (properties.repository?.shareAll?.enable) {
 		const excludedFileName = properties.repository.shareAll.excludedFileName;
-		return !file.basename.startsWith(excludedFileName) && !isInDryRunFolder(properties.plugin.settings, properties.repository, file);
+		return (
+			!file.basename.startsWith(excludedFileName) &&
+			!isInDryRunFolder(properties.plugin.settings, properties.repository, file)
+		);
 	}
 	if (!frontmatter) return false;
-	if (isExcludedPath(properties.plugin.settings, file, properties.repository)) return false;
-	const shareKey = properties.repository?.shareKey || properties.plugin.settings.plugin.shareKey;
-	logs({settings: properties.plugin.settings}, "shareKey", shareKey, "frontmatter", frontmatter[shareKey]);
-	if (frontmatter[shareKey] == null || frontmatter[shareKey] === undefined || ["false", "0", "no"].includes(frontmatter[shareKey].toString().toLowerCase())) return false;
-	return ["true", "1", "yes"].includes(frontmatter[shareKey].toString().toLowerCase());
-
+	if (isExcludedPath(properties.plugin.settings, file, properties.repository))
+		return false;
+	const shareKey =
+		properties.repository?.shareKey ||
+		properties.plugin.settings.plugin.shareKey;
+	logs(
+		{ settings: properties.plugin.settings },
+		'shareKey',
+		shareKey,
+		'frontmatter',
+		frontmatter[shareKey]
+	);
+	if (
+		frontmatter[shareKey] == null ||
+		frontmatter[shareKey] === undefined ||
+		['false', '0', 'no'].includes(
+			frontmatter[shareKey].toString().toLowerCase()
+		)
+	)
+		return false;
+	return ['true', '1', 'yes'].includes(
+		frontmatter[shareKey].toString().toLowerCase()
+	);
 }
 /**
  * Retrieves the shared key for a repository based on the provided settings, app, frontmatter, and file.
@@ -49,20 +86,26 @@ export function isInternalShared(
  * @param file - The TFile object representing the file being processed.
  * @returns The Repository object representing the repository with the shared key, or null if no repository is found.
  */
-export function getRepoSharedKey(plugin: GithubPublisher, frontmatter?: FrontMatterCache | null, file?: TFile): Repository | null{
-	const {settings} = plugin;
+export function getRepoSharedKey(
+	plugin: GithubPublisher,
+	frontmatter?: FrontMatterCache | null,
+	file?: TFile
+): Repository | null {
+	const { settings } = plugin;
 	const allOtherRepo = settings.github.otherRepo;
 	if (settings.plugin.shareAll?.enable && !frontmatter) {
 		return defaultRepo(settings);
 	} else if (!frontmatter) return null;
 	const linkedFrontmatter = getLinkedFrontmatter(frontmatter, file, plugin);
-	frontmatter = linkedFrontmatter ? {...linkedFrontmatter, ...frontmatter} : frontmatter;
+	frontmatter = linkedFrontmatter
+		? { ...linkedFrontmatter, ...frontmatter }
+		: frontmatter;
 	for (const repo of allOtherRepo) {
 		if (frontmatter[repo.shareKey]) {
 			return repo;
 		}
 	}
-	logs({settings}, "No other repo found, using default repo");
+	logs({ settings }, 'No other repo found, using default repo');
 	return defaultRepo(settings);
 }
 
@@ -81,23 +124,45 @@ export function isShared(
 	meta: FrontMatterCache | undefined | null,
 	settings: GitHubPublisherSettings,
 	file: TFile,
-	otherRepo: Repository|null
+	otherRepo: Repository | null
 ): boolean {
-	if (!file || file.extension !== "md") {
+	if (!file || file.extension !== 'md') {
 		return false;
 	}
-	const otherRepoWithShareAll = settings.github.otherRepo.filter((repo) => repo.shareAll?.enable);
+	const otherRepoWithShareAll = settings.github.otherRepo.filter(
+		repo => repo.shareAll?.enable
+	);
 	if (!settings.plugin.shareAll?.enable && otherRepoWithShareAll.length === 0) {
 		const shareKey = otherRepo ? otherRepo.shareKey : settings.plugin.shareKey;
-		if ( meta == null || !meta[shareKey] || meta[shareKey] == null || isExcludedPath(settings, file, otherRepo) || meta[shareKey] === undefined || ["false", "0", "no"].includes(meta[shareKey].toString().toLowerCase())) {
+		if (
+			meta == null ||
+			!meta[shareKey] ||
+			meta[shareKey] == null ||
+			isExcludedPath(settings, file, otherRepo) ||
+			meta[shareKey] === undefined ||
+			['false', '0', 'no'].includes(meta[shareKey].toString().toLowerCase())
+		) {
 			return false;
 		}
-		const shareKeyInFrontmatter:string = meta[shareKey].toString().toLowerCase();
-		return ["true", "1", "yes"].includes(shareKeyInFrontmatter);
-	} else if (settings.plugin.shareAll?.enable || otherRepoWithShareAll.length > 0) {
-		const allExcludedFileName = otherRepoWithShareAll.map((repo) => repo.shareAll!.excludedFileName);
+		const shareKeyInFrontmatter: string = meta[shareKey]
+			.toString()
+			.toLowerCase();
+		return ['true', '1', 'yes'].includes(shareKeyInFrontmatter);
+	} else if (
+		settings.plugin.shareAll?.enable ||
+		otherRepoWithShareAll.length > 0
+	) {
+		const allExcludedFileName = otherRepoWithShareAll.map(
+			repo => repo.shareAll!.excludedFileName
+		);
 		allExcludedFileName.push(settings.plugin.shareAll!.excludedFileName);
-		if (allExcludedFileName.some(prefix => prefix.trim().length > 0 && !file.basename.startsWith(prefix) || prefix.trim().length === 0)) {
+		if (
+			allExcludedFileName.some(
+				prefix =>
+					(prefix.trim().length > 0 && !file.basename.startsWith(prefix)) ||
+					prefix.trim().length === 0
+			)
+		) {
 			return !isExcludedPath(settings, file, otherRepo);
 		}
 	}
@@ -109,10 +174,16 @@ export function isShared(
  * @param file {TFile}
  * @returns boolean
  */
-export function isExcludedPath(settings: GitHubPublisherSettings, file: TFile | TFolder, repository: Repository | null):boolean {
+export function isExcludedPath(
+	settings: GitHubPublisherSettings,
+	file: TFile | TFolder,
+	repository: Repository | null
+): boolean {
 	const excludedFolder = settings.plugin.excludedFolder;
 	if (settings.plugin.shareAll?.enable || repository?.shareAll?.enable) {
-		const excludedFromShare = repository?.shareAll?.excludedFileName ?? settings.plugin.shareAll?.excludedFileName;
+		const excludedFromShare =
+			repository?.shareAll?.excludedFileName ??
+			settings.plugin.shareAll?.excludedFileName;
 		if (excludedFromShare && file.name.startsWith(excludedFromShare)) {
 			return true;
 		}
@@ -120,13 +191,12 @@ export function isExcludedPath(settings: GitHubPublisherSettings, file: TFile | 
 	for (const folder of excludedFolder) {
 		const isRegex = folder.match(FIND_REGEX);
 		const regex = isRegex ? new RegExp(isRegex[1], isRegex[2]) : null;
-		if ((regex?.test(file.path)) || file.path.contains(folder.trim())) {
+		if (regex?.test(file.path) || file.path.contains(folder.trim())) {
 			return true;
 		}
 	}
 	return isInDryRunFolder(settings, repository, file);
 }
-
 
 /**
  * Allow to get all sharedKey from one file to count them
@@ -137,13 +207,18 @@ export function isExcludedPath(settings: GitHubPublisherSettings, file: TFile | 
  * @param {App} app - The Obsidian app instance.
  * @returns {string[]} - An array of shared keys found in the file.
  */
-export function multipleSharedKey(frontmatter: FrontMatterCache | undefined | null, file: TFile | null, plugin: GithubPublisher): string[] {
+export function multipleSharedKey(
+	frontmatter: FrontMatterCache | undefined | null,
+	file: TFile | null,
+	plugin: GithubPublisher
+): string[] {
 	const keysInFile: string[] = [];
-	const {settings} = plugin;
-	if (settings.plugin.shareAll?.enable)
-		keysInFile.push("share"); //add a key to count the shareAll
+	const { settings } = plugin;
+	if (settings.plugin.shareAll?.enable) keysInFile.push('share'); //add a key to count the shareAll
 
-	const otherRepoWithShareAll = settings.github.otherRepo.filter((repo) => repo.shareAll);
+	const otherRepoWithShareAll = settings.github.otherRepo.filter(
+		repo => repo.shareAll
+	);
 	if (otherRepoWithShareAll.length > 0) {
 		for (const repo of otherRepoWithShareAll) {
 			keysInFile.push(repo.smartKey);
@@ -151,8 +226,8 @@ export function multipleSharedKey(frontmatter: FrontMatterCache | undefined | nu
 	}
 	if (!frontmatter) return keysInFile;
 	const linkedRepo = getLinkedFrontmatter(frontmatter, file, plugin);
-	frontmatter = linkedRepo ? {...linkedRepo, ...frontmatter} : frontmatter;
-	const allKey = settings.github.otherRepo.map((repo) => repo.shareKey);
+	frontmatter = linkedRepo ? { ...linkedRepo, ...frontmatter } : frontmatter;
+	const allKey = settings.github.otherRepo.map(repo => repo.shareKey);
 	allKey.push(settings.plugin.shareKey);
 
 	for (const key of allKey) {
@@ -187,7 +262,8 @@ export function multipleSharedKey(frontmatter: FrontMatterCache | undefined | nu
  */
 
 export function isAttachment(filename: string): RegExpMatchArray | null {
-	if (filename.includes("excalidraw")) return filename.match(/excalidraw\.md$/i);
+	if (filename.includes('excalidraw'))
+		return filename.match(/excalidraw\.md$/i);
 	return filename.match(
 		/(png|jpe?g|gif|bmp|svg|mp[34]|web[mp]|wav|m4a|ogg|3gp|flac|ogv|mov|mkv|pdf|excalidraw)$/i
 	);
@@ -246,7 +322,11 @@ export function checkIfRepoIsInAnother(
  * @param silent
  * @return {Promise<boolean>}
  */
-export async function checkEmptyConfiguration(repoFrontmatter: RepoFrontmatter | RepoFrontmatter[], plugin: GithubPublisher, silent= false): Promise<boolean> {
+export async function checkEmptyConfiguration(
+	repoFrontmatter: RepoFrontmatter | RepoFrontmatter[],
+	plugin: GithubPublisher,
+	silent = false
+): Promise<boolean> {
 	repoFrontmatter = Array.isArray(repoFrontmatter)
 		? repoFrontmatter
 		: [repoFrontmatter];
@@ -254,29 +334,31 @@ export async function checkEmptyConfiguration(repoFrontmatter: RepoFrontmatter |
 	const token = await plugin.loadToken();
 	if (token.length === 0) {
 		isEmpty.push(true);
-		const whatIsEmpty = i18next.t("common.ghToken") ;
-		if (!silent) new Notice(i18next.t("error.isEmpty", {what: whatIsEmpty}));
-	}
-	else {
+		const whatIsEmpty = i18next.t('common.ghToken');
+		if (!silent) new Notice(i18next.t('error.isEmpty', { what: whatIsEmpty }));
+	} else {
 		for (const repo of repoFrontmatter) {
 			if (repo.repo.length === 0) {
 				isEmpty.push(true);
-				const whatIsEmpty = i18next.t("common.repository") ;
-				if (!silent) new Notice(i18next.t("error.isEmpty", {what: whatIsEmpty}));
+				const whatIsEmpty = i18next.t('common.repository');
+				if (!silent)
+					new Notice(i18next.t('error.isEmpty', { what: whatIsEmpty }));
 			} else if (repo.owner.length === 0) {
 				isEmpty.push(true);
-				const whatIsEmpty = i18next.t("error.whatEmpty.owner") ;
-				if (!silent) new Notice(i18next.t("error.isEmpty", {what: whatIsEmpty}));
+				const whatIsEmpty = i18next.t('error.whatEmpty.owner');
+				if (!silent)
+					new Notice(i18next.t('error.isEmpty', { what: whatIsEmpty }));
 			} else if (repo.branch.length === 0) {
 				isEmpty.push(true);
-				const whatIsEmpty = i18next.t("error.whatEmpty.branch") ;
-				if (!silent) new Notice(i18next.t("error.isEmpty", {what: whatIsEmpty}));
+				const whatIsEmpty = i18next.t('error.whatEmpty.branch');
+				if (!silent)
+					new Notice(i18next.t('error.isEmpty', { what: whatIsEmpty }));
 			} else {
 				isEmpty.push(false);
 			}
 		}
 	}
-	const allInvalid = isEmpty.every((value) => value === true);
+	const allInvalid = isEmpty.every(value => value === true);
 	return !allInvalid;
 }
 
@@ -285,16 +367,20 @@ export async function checkEmptyConfiguration(repoFrontmatter: RepoFrontmatter |
  * @param {FrontmatterConvert} conditionConvert The frontmatter option to check
  * @return {boolean} if the text need to be converted
  */
-export function noTextConversion(conditionConvert: FrontmatterConvert): boolean {
+export function noTextConversion(
+	conditionConvert: FrontmatterConvert
+): boolean {
 	const convertWikilink = conditionConvert.convertWiki;
 	const imageSettings = conditionConvert.attachment;
 	const embedSettings = conditionConvert.embed;
 	const convertLinks = conditionConvert.links;
-	return !convertWikilink
-		&& convertLinks
-		&& imageSettings
-		&& embedSettings
-		&& !conditionConvert.removeEmbed;
+	return (
+		!convertWikilink &&
+		convertLinks &&
+		imageSettings &&
+		embedSettings &&
+		!conditionConvert.removeEmbed
+	);
 }
 
 /**
@@ -310,19 +396,27 @@ export async function checkRepositoryValidity(
 	PublisherManager: GithubBranch,
 	repository: Repository | null = null,
 	file: TFile | null,
-	silent: boolean=false): Promise<boolean> {
+	silent: boolean = false
+): Promise<boolean> {
 	const settings = PublisherManager.settings;
 	try {
 		const frontmatter = frontmatterFromFile(file, PublisherManager.plugin);
-		const repoFrontmatter = getRepoFrontmatter(settings, repository, frontmatter);
-		const isNotEmpty = await checkEmptyConfiguration(repoFrontmatter, PublisherManager.plugin, silent);
+		const repoFrontmatter = getRepoFrontmatter(
+			settings,
+			repository,
+			frontmatter
+		);
+		const isNotEmpty = await checkEmptyConfiguration(
+			repoFrontmatter,
+			PublisherManager.plugin,
+			silent
+		);
 		if (isNotEmpty) {
 			await PublisherManager.checkRepository(repoFrontmatter, silent);
 			return true;
 		}
-	}
-	catch (e) {
-		notif({settings, e: true}, e);
+	} catch (e) {
+		notif({ settings, e: true }, e);
 		return false;
 	}
 	return false;
@@ -338,7 +432,7 @@ export async function checkRepositoryValidity(
 export async function checkRepositoryValidityWithRepoFrontmatter(
 	PublisherManager: GithubBranch,
 	repoFrontmatter: RepoFrontmatter,
-	numberOfFile: number=1
+	numberOfFile: number = 1
 ): Promise<boolean> {
 	const settings = PublisherManager.settings;
 	if (settings.github.dryRun.enable) return true;
@@ -346,17 +440,26 @@ export async function checkRepositoryValidityWithRepoFrontmatter(
 		const verified = repoFrontmatter.verifiedRepo;
 		const rateLimit = repoFrontmatter.rateLimit;
 		if (verified && rateLimit) return true;
-		const isNotEmpty = await checkEmptyConfiguration(repoFrontmatter, PublisherManager.plugin);
+		const isNotEmpty = await checkEmptyConfiguration(
+			repoFrontmatter,
+			PublisherManager.plugin
+		);
 		if (isNotEmpty) {
 			await PublisherManager.checkRepository(repoFrontmatter, true);
 			if (repoFrontmatter?.rateLimit === 0 || numberOfFile > 20) {
-				return await verifyRateLimitAPI(PublisherManager.octokit, settings, false, numberOfFile) > 0;
+				return (
+					(await verifyRateLimitAPI(
+						PublisherManager.octokit,
+						settings,
+						false,
+						numberOfFile
+					)) > 0
+				);
 			}
 			return true;
 		}
-	}
-	catch (e) {
-		notif({settings, e: true}, e);
+	} catch (e) {
+		notif({ settings, e: true }, e);
 		return false;
 	}
 	return false;
@@ -370,7 +473,7 @@ export async function checkRepositoryValidityWithRepoFrontmatter(
  */
 export function defaultRepo(settings: GitHubPublisherSettings): Repository {
 	return {
-		smartKey: "default",
+		smartKey: 'default',
 		user: settings.github.user,
 		repo: settings.github.repo,
 		branch: settings.github.branch,
@@ -386,7 +489,8 @@ export function defaultRepo(settings: GitHubPublisherSettings): Repository {
 			name: settings.github.workflow.name,
 		},
 		createShortcuts: false,
-		shareKey: settings.plugin.shareKey.length > 0 ? settings.plugin.shareKey : "share",
+		shareKey:
+			settings.plugin.shareKey.length > 0 ? settings.plugin.shareKey : 'share',
 		copyLink: {
 			links: settings.plugin.copyLink.links,
 			removePart: settings.plugin.copyLink.removePart,
@@ -418,20 +522,24 @@ export async function verifyRateLimitAPI(
 	numberOfFile = 1
 ): Promise<number> {
 	try {
-		const rateLimit = await octokit.request("GET /rate_limit");
+		const rateLimit = await octokit.request('GET /rate_limit');
 		const remaining = rateLimit.data.resources.core.remaining;
 		const reset = rateLimit.data.resources.core.reset;
 		const date = new Date(reset * 1000);
 		const time = date.toLocaleTimeString();
 
 		if (remaining <= numberOfFile) {
-			new Notice(i18next.t("commands.checkValidity.rateLimit.limited", { resetTime: time }));
+			new Notice(
+				i18next.t('commands.checkValidity.rateLimit.limited', {
+					resetTime: time,
+				})
+			);
 			return 0;
 		}
 
-		const message = i18next.t("commands.checkValidity.rateLimit.notLimited", {
+		const message = i18next.t('commands.checkValidity.rateLimit.notLimited', {
 			remaining,
-			resetTime: time
+			resetTime: time,
 		});
 
 		if (commands) {
@@ -442,14 +550,17 @@ export async function verifyRateLimitAPI(
 
 		return remaining;
 	} catch (error) {
-		//if the error is 404 and user use enterprise, it's normal 
-		if ((error as any).status === 404 
-			&& settings.github.api.tiersForApi === GithubTiersVersion.entreprise 
-			&& (error as any).response.data.message === "Rate limiting is not enabled." 
-			&& (error as any).name === "HttpError") return 5000;
+		//if the error is 404 and user use enterprise, it's normal
+		if (
+			(error as any).status === 404 &&
+			settings.github.api.tiersForApi === GithubTiersVersion.entreprise &&
+			(error as any).response.data.message ===
+				'Rate limiting is not enabled.' &&
+			(error as any).name === 'HttpError'
+		)
+			return 5000;
 		notif({ settings, e: true }, error);
 		return 0;
-
 	}
 }
 
@@ -460,16 +571,18 @@ export async function verifyRateLimitAPI(
  * @param settings - The GitHub Publisher settings.
  * @returns True if the attachment file needs to be force pushed, false otherwise.
  */
-export function forcePushAttachment(file: TFile, settings: GitHubPublisherSettings):boolean {
-	const needToBeForPush = settings.embed.overrideAttachments.filter((path) => {
+export function forcePushAttachment(
+	file: TFile,
+	settings: GitHubPublisherSettings
+): boolean {
+	const needToBeForPush = settings.embed.overrideAttachments.filter(path => {
 		const isRegex = path.path.match(FIND_REGEX);
 		const regex = isRegex ? new RegExp(isRegex[1], isRegex[2]) : null;
 		return (
-			path.forcePush &&(
-				regex?.test(file.path)
-				|| file.path === path.path
-				|| path.path.contains("{{all}}")
-			)
+			path.forcePush &&
+			(regex?.test(file.path) ||
+				file.path === path.path ||
+				path.path.contains('{{all}}'))
 		);
 	});
 	if (needToBeForPush.length === 0) return false;
@@ -482,12 +595,12 @@ export function forcePushAttachment(file: TFile, settings: GitHubPublisherSettin
  * @returns True if the file is a folder note, false otherwise.
  */
 export function isFolderNote(properties: MultiProperties): boolean {
-	const {filepath } = properties;
+	const { filepath } = properties;
 	const { settings } = properties.plugin;
 	const { enable, rename } = settings.upload.folderNote;
 
 	if (enable) {
-		const filename = filepath.split("/").pop();
+		const filename = filepath.split('/').pop();
 		return filename === rename;
 	}
 
@@ -502,16 +615,20 @@ export function isFolderNote(properties: MultiProperties): boolean {
  * @param file - The file or folder to check.
  * @returns True if the file or folder is located within the dry run folder, false otherwise.
  */
-export function isInDryRunFolder(settings: GitHubPublisherSettings, repo: Repository | null, file: TFile | TFolder) {
-	if (settings.github.dryRun.folderName.trim().length ===0) return false;
+export function isInDryRunFolder(
+	settings: GitHubPublisherSettings,
+	repo: Repository | null,
+	file: TFile | TFolder
+) {
+	if (settings.github.dryRun.folderName.trim().length === 0) return false;
 	const variables = {
 		owner: repo?.user ?? settings.github.user,
 		repo: repo?.repo ?? settings.github.repo,
 		branch: repo?.branch ?? settings.github.branch,
 	};
 	const folder = settings.github.dryRun.folderName
-		.replace("{{owner}}", variables.owner)
-		.replace("{{repo}}", variables.repo)
-		.replace("{{branch}}", variables.branch);
+		.replace('{{owner}}', variables.owner)
+		.replace('{{repo}}', variables.repo)
+		.replace('{{branch}}', variables.branch);
 	return file.path.startsWith(normalizePath(folder));
 }

@@ -1,14 +1,14 @@
 name: Auto-merge translation PR
 on:
-    pull_request_target:
-        types:
-          - opened
-          - synchronize
-          - reopened
-          - edited
-          - labeled
-          - unlabeled
-          - ready_for_review
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - edited
+      - labeled
+      - unlabeled
+      - ready_for_review
 
 jobs:
   automerge:
@@ -19,7 +19,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MERGE_METHOD: squash
-          MERGE_COMMIT_MESSAGE: "ci(i18n): auto-merge translation"
-          MERGE_LABELS: ""
-          
-          
+          MERGE_COMMIT_MESSAGE: 'ci(i18n): auto-merge translation'
+          MERGE_LABELS: ''

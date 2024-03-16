@@ -1,35 +1,32 @@
-import { Octokit } from "@octokit/core";
-import {FrontMatterCache, TFile, TFolder} from "obsidian";
-import { getAPI, Link } from "obsidian-dataview";
+import { Octokit } from '@octokit/core';
+import { FrontMatterCache, TFile, TFolder } from 'obsidian';
+import { getAPI, Link } from 'obsidian-dataview';
 
-import {
-	getImagePath,
-	getReceiptFolder,
-} from "../conversion/file_path";
-import GithubPublisher from "../main";
+import { getImagePath, getReceiptFolder } from '../conversion/file_path';
+import GithubPublisher from '../main';
 import {
 	ConvertedLink,
 	FrontmatterConvert,
 	GithubRepo,
 	LinkedNotes,
-	RepoFrontmatter, Repository,
-} from "../settings/interface";
-import {logs} from "../utils";
-import { isAttachment, isShared } from "../utils/data_validation_test";
-import { frontmatterFromFile, getRepoFrontmatter } from "../utils/parse_frontmatter";
-import Publisher from "./upload";
+	RepoFrontmatter,
+	Repository,
+} from '../settings/interface';
+import { logs } from '../utils';
+import { isAttachment, isShared } from '../utils/data_validation_test';
+import {
+	frontmatterFromFile,
+	getRepoFrontmatter,
+} from '../utils/parse_frontmatter';
+import Publisher from './upload';
 
 export class FilesManagement extends Publisher {
-
 	/**
 	 * @param {Octokit} octokit The octokit instance
 	 * @param {GitHubPublisherSettings} plugin The plugin
 	 */
 
-	constructor(
-		octokit: Octokit,
-		plugin: GithubPublisher,
-	) {
+	constructor(octokit: Octokit, plugin: GithubPublisher) {
 		super(octokit, plugin);
 	}
 
@@ -43,14 +40,12 @@ export class FilesManagement extends Publisher {
 		const shared_File: TFile[] = [];
 		for (const file of files) {
 			try {
-				const frontMatter = this.metadataCache.getCache(
-					file.path
-				)?.frontmatter;
+				const frontMatter = this.metadataCache.getCache(file.path)?.frontmatter;
 				if (isShared(frontMatter, this.settings, file, repo)) {
 					shared_File.push(file);
 				}
-			} catch(e) {
-				logs({settings: this.settings, e: true}, e);
+			} catch (e) {
+				logs({ settings: this.settings, e: true }, e);
 			}
 		}
 		return shared_File;
@@ -66,20 +61,22 @@ export class FilesManagement extends Publisher {
 		const files: TFile[] = [];
 		for (const file of folder.children) {
 			if (file instanceof TFolder) {
-				files.push(... this.getSharedFileOfFolder(file, repo));
+				files.push(...this.getSharedFileOfFolder(file, repo));
 			} else {
 				try {
-					const frontMatter = this.metadataCache.getCache(file.path)?.frontmatter;
+					const frontMatter = this.metadataCache.getCache(
+						file.path
+					)?.frontmatter;
 					if (isShared(frontMatter, this.settings, file as TFile, repo)) {
 						files.push(file as TFile);
 					}
-				} catch(e) {
-					logs({settings: this.settings, e: true}, e);
+				} catch (e) {
+					logs({ settings: this.settings, e: true }, e);
 				}
 			}
 		}
 
-		logs({settings: this.settings}, files);
+		logs({ settings: this.settings }, files);
 		return files;
 	}
 
@@ -89,7 +86,9 @@ export class FilesManagement extends Publisher {
 	 */
 
 	getAllFileWithPath(repo: Repository | null): ConvertedLink[] {
-		const files = this.vault.getFiles().filter((x) => !x.path.startsWith(this.settings.github.dryRun.folderName));
+		const files = this.vault
+			.getFiles()
+			.filter(x => !x.path.startsWith(this.settings.github.dryRun.folderName));
 		const allFileWithPath: ConvertedLink[] = [];
 		for (const file of files) {
 			if (isAttachment(file.name)) {
@@ -98,7 +97,7 @@ export class FilesManagement extends Publisher {
 					converted: filepath,
 					real: file.path,
 				});
-			} else if (file.extension == "md") {
+			} else if (file.extension == 'md') {
 				const frontMatter = frontmatterFromFile(file, this.plugin);
 				if (isShared(frontMatter, this.settings, file, repo)) {
 					const repoFrontmatter = getRepoFrontmatter(
@@ -106,7 +105,12 @@ export class FilesManagement extends Publisher {
 						repo,
 						frontMatter
 					);
-					const filepath = getReceiptFolder(file, repo, this.plugin, repoFrontmatter);
+					const filepath = getReceiptFolder(
+						file,
+						repo,
+						this.plugin,
+						repoFrontmatter
+					);
 					allFileWithPath.push({
 						converted: filepath,
 						real: file.path,
@@ -131,22 +135,28 @@ export class FilesManagement extends Publisher {
 			for (const image of imageEmbedded) {
 				try {
 					const imageLink = this.metadataCache.getFirstLinkpathDest(
-						image.link.replace(/#.*/, ""),
+						image.link.replace(/#.*/, ''),
 						file.path
 					);
 					if (imageLink !== null) {
-						let altText = image.displayText !== imageLink.path.replace(".md", "") ? image.displayText : imageLink.basename;
+						let altText =
+							image.displayText !== imageLink.path.replace('.md', '')
+								? image.displayText
+								: imageLink.basename;
 						let frontmatterDestinationFilePath;
 
 						if (this.settings.upload.frontmatterTitle.enable) {
-							const frontmatter = this.metadataCache.getCache(imageLink.path)?.frontmatter;
+							const frontmatter = this.metadataCache.getCache(
+								imageLink.path
+							)?.frontmatter;
 
 							/**
 							 * In case there's a frontmatter configuration, pass along
 							 * `filename` so we can later use that to convert wikilinks.
 							 */
 							if (frontmatter?.[this.settings.upload.frontmatterTitle.key]) {
-								frontmatterDestinationFilePath = frontmatter[this.settings.upload.frontmatterTitle.key];
+								frontmatterDestinationFilePath =
+									frontmatter[this.settings.upload.frontmatterTitle.key];
 								if (altText === imageLink.basename) {
 									altText = frontmatterDestinationFilePath;
 								}
@@ -157,19 +167,19 @@ export class FilesManagement extends Publisher {
 							linkFrom: image.link, //path of the founded file
 							altText, //alt text if exists, filename otherwise
 							destinationFilePath: frontmatterDestinationFilePath,
-							type: "embed",
+							type: 'embed',
 							position: {
 								start: image.position.start.offset,
 								end: image.position.end.offset,
-							}
+							},
 						};
-						if (image.link.includes("#")) {
-							thisLinkedFile.anchor = `#${image.link.split("#")[1]}`;
+						if (image.link.includes('#')) {
+							thisLinkedFile.anchor = `#${image.link.split('#')[1]}`;
 						}
 						linkedFiles.push(thisLinkedFile);
 					}
 				} catch (e) {
-					logs({settings: this.settings}, e);
+					logs({ settings: this.settings }, e);
 				}
 			}
 		}
@@ -189,22 +199,32 @@ export class FilesManagement extends Publisher {
 			for (const embedCache of embedCaches) {
 				try {
 					const linkedFile = this.metadataCache.getFirstLinkpathDest(
-						embedCache.link.replace(/#.*/, ""),
+						embedCache.link.replace(/#.*/, ''),
 						file.path
 					);
 					if (linkedFile) {
-						let altText = embedCache.original.match(/\[.*\]\(.*\)/) ? embedCache.original!.match(/\[(.*)\]/)![1] : embedCache.displayText !== linkedFile.path.replace(".md", "") ? embedCache.displayText : linkedFile.basename;
+						let altText = embedCache.original.match(/\[.*\]\(.*\)/)
+							? embedCache.original!.match(/\[(.*)\]/)![1]
+							: embedCache.displayText !== linkedFile.path.replace('.md', '')
+								? embedCache.displayText
+								: linkedFile.basename;
 						let frontmatterDestinationFilePath;
 
 						if (this.settings.upload.frontmatterTitle.enable) {
-							const frontmatter = this.metadataCache.getCache(linkedFile.path)?.frontmatter;
+							const frontmatter = this.metadataCache.getCache(
+								linkedFile.path
+							)?.frontmatter;
 
 							/**
 							 * In case there's a frontmatter configuration, pass along
 							 * `filename` so we can later use that to convert wikilinks.
 							 */
-							if (frontmatter && frontmatter[this.settings.upload.frontmatterTitle.key]) {
-								frontmatterDestinationFilePath = frontmatter[this.settings.upload.frontmatterTitle.key];
+							if (
+								frontmatter &&
+								frontmatter[this.settings.upload.frontmatterTitle.key]
+							) {
+								frontmatterDestinationFilePath =
+									frontmatter[this.settings.upload.frontmatterTitle.key];
 								if (altText === linkedFile.basename) {
 									altText = frontmatterDestinationFilePath;
 								}
@@ -215,16 +235,16 @@ export class FilesManagement extends Publisher {
 							linkFrom: embedCache.link,
 							altText,
 							destinationFilePath: frontmatterDestinationFilePath,
-							type: "link",
+							type: 'link',
 						};
-						if (embedCache.link.includes("#")) {
-							thisEmbed.anchor = `#${embedCache.link.split("#")[1]}`;
+						if (embedCache.link.includes('#')) {
+							thisEmbed.anchor = `#${embedCache.link.split('#')[1]}`;
 						}
 						embedList.push(thisEmbed);
 					}
 				} catch (e) {
 					logs(
-						{settings: this.settings, e: true},
+						{ settings: this.settings, e: true },
 						`Error with this links : ${embedCache.link}`,
 						e
 					);
@@ -253,19 +273,25 @@ export class FilesManagement extends Publisher {
 			for (const embed of embedCaches) {
 				try {
 					const imageLink = this.metadataCache.getFirstLinkpathDest(
-						embed.link.replace(/#(.*)/, ""),
+						embed.link.replace(/#(.*)/, ''),
 						file.path
 					);
-					if (imageLink) imageList.push(this.imageSharedOrNote(imageLink as TFile, frontmatterSourceFile) as TFile);
+					if (imageLink)
+						imageList.push(
+							this.imageSharedOrNote(
+								imageLink as TFile,
+								frontmatterSourceFile
+							) as TFile
+						);
 				} catch (e) {
 					logs(
-						{settings: this.settings, e: true},
+						{ settings: this.settings, e: true },
 						`Error with this file : ${embed.displayText}`,
 						e
 					);
 				}
 			}
-			return [...new Set(imageList)].filter((x) => x !== null);
+			return [...new Set(imageList)].filter(x => x !== null);
 		}
 		return [];
 	}
@@ -275,11 +301,9 @@ export class FilesManagement extends Publisher {
 	 * @return {Promise<Date>}
 	 */
 
-	async getLastEditedTimeRepo(
-		githubRepo: GithubRepo,
-	): Promise<Date | null> {
+	async getLastEditedTimeRepo(githubRepo: GithubRepo): Promise<Date | null> {
 		const commits = await this.octokit.request(
-			"GET /repos/{owner}/{repo}/commits",
+			'GET /repos/{owner}/{repo}/commits',
 			{
 				owner: this.settings.github.user,
 				repo: this.settings.github.repo,
@@ -287,7 +311,12 @@ export class FilesManagement extends Publisher {
 			}
 		);
 		const lastCommittedFile = commits.data[0];
-		if (!lastCommittedFile || !lastCommittedFile.commit || !lastCommittedFile.commit.committer || !lastCommittedFile.commit.committer.date) {
+		if (
+			!lastCommittedFile ||
+			!lastCommittedFile.commit ||
+			!lastCommittedFile.commit.committer ||
+			!lastCommittedFile.commit.committer.date
+		) {
 			return null;
 		}
 		return new Date(lastCommittedFile.commit.committer.date);
@@ -304,12 +333,12 @@ export class FilesManagement extends Publisher {
 		const filesInRepo: GithubRepo[] = [];
 		try {
 			const repoContents = await this.octokit.request(
-				"GET /repos/{owner}/{repo}/git/trees/{tree_sha}",
+				'GET /repos/{owner}/{repo}/git/trees/{tree_sha}',
 				{
 					owner: repo.owner,
 					repo: repo.repo,
 					tree_sha: branchToScan,
-					recursive: "true",
+					recursive: 'true',
 				}
 			);
 
@@ -319,10 +348,7 @@ export class FilesManagement extends Publisher {
 					if (!file.path || !file.sha) continue;
 					const basename = (name: string) =>
 						/([^/\\.]*)(\..*)?$/.exec(name)![1]; //don't delete file starting with .
-					if (
-						file.type === "blob" &&
-						basename(file.path).length > 0
-					) {
+					if (file.type === 'blob' && basename(file.path).length > 0) {
 						filesInRepo.push({
 							file: file.path,
 							sha: file.sha,
@@ -331,7 +357,7 @@ export class FilesManagement extends Publisher {
 				}
 			}
 		} catch (e) {
-			logs({settings: this.settings, e: true}, e);
+			logs({ settings: this.settings, e: true }, e);
 		}
 		return filesInRepo;
 	}
@@ -346,22 +372,18 @@ export class FilesManagement extends Publisher {
 
 	getNewFiles(
 		allFileWithPath: ConvertedLink[],
-		githubSharedFiles: GithubRepo[],
+		githubSharedFiles: GithubRepo[]
 	): TFile[] {
 		const newFiles: TFile[] = []; //new file : present in allFileswithPath but not in githubSharedFiles
 
 		for (const file of allFileWithPath) {
-			if (
-				!githubSharedFiles.some((x) => x.file === file.converted.trim())
-			) {
+			if (!githubSharedFiles.some(x => x.file === file.converted.trim())) {
 				//get TFile from file
-				const fileInVault = this.vault.getAbstractFileByPath(
-					file.real.trim()
-				);
+				const fileInVault = this.vault.getAbstractFileByPath(file.real.trim());
 				if (
 					fileInVault &&
 					fileInVault instanceof TFile &&
-					fileInVault.extension === "md"
+					fileInVault.extension === 'md'
 				) {
 					newFiles.push(fileInVault);
 				}
@@ -383,18 +405,21 @@ export class FilesManagement extends Publisher {
 		field: Link | string,
 		frontmatterSourceFile: FrontmatterConvert
 	): TFile | undefined {
-		if (field.constructor.name === "Link") {
+		if (field.constructor.name === 'Link') {
 			// @ts-ignore
 			field = field.path;
 		}
-		if (source.constructor.name === "Link") {
+		if (source.constructor.name === 'Link') {
 			// @ts-ignore
 			source = source.path;
 		}
 		// @ts-ignore
 		const imageLink = this.metadataCache.getFirstLinkpathDest(field, source);
 		if (imageLink) {
-			return this.imageSharedOrNote(imageLink as TFile, frontmatterSourceFile) as TFile;
+			return this.imageSharedOrNote(
+				imageLink as TFile,
+				frontmatterSourceFile
+			) as TFile;
 		}
 		return undefined;
 	}
@@ -416,7 +441,7 @@ export class FilesManagement extends Publisher {
 		const transferEmbeds = settingsConversion.embed;
 		if (
 			(isAttachment(file.name) && transferImage) ||
-			(transferEmbeds && file.extension === "md")
+			(transferEmbeds && file.extension === 'md')
 		) {
 			return file;
 		}
@@ -439,21 +464,21 @@ export class FilesManagement extends Publisher {
 		frontmatterSettings: FrontmatterConvert
 	): Promise<TFile[]> {
 		for (const field of this.settings.embed.keySendFile) {
-			const frontmatterLink = this.metadataCache.getFileCache(file)?.frontmatterLinks;
+			const frontmatterLink =
+				this.metadataCache.getFileCache(file)?.frontmatterLinks;
 			const imageLinkPath: string[] = [];
 			if (frontmatterLink) {
-				frontmatterLink.forEach((link) => {
-					const fieldRegex = new RegExp(`${field}(\\.\\d+)?`, "g");
+				frontmatterLink.forEach(link => {
+					const fieldRegex = new RegExp(`${field}(\\.\\d+)?`, 'g');
 					if (link.key.match(fieldRegex)) {
 						imageLinkPath.push(link.link);
 					}
 				});
 			}
 			for (const path of imageLinkPath) {
-				const imageLink = this.metadataCache.getFirstLinkpathDest(
-					path,
-					file.path
-				) ?? this.vault.getAbstractFileByPath(path);
+				const imageLink =
+					this.metadataCache.getFirstLinkpathDest(path, file.path) ??
+					this.vault.getAbstractFileByPath(path);
 				if (imageLink instanceof TFile && !embedFiles.includes(imageLink)) {
 					embedFiles.push(
 						this.imageSharedOrNote(imageLink, frontmatterSettings) as TFile
@@ -462,10 +487,10 @@ export class FilesManagement extends Publisher {
 			}
 		}
 
-		embedFiles = [...new Set(embedFiles)].filter((x) => x != null);
-		logs({settings: this.settings}, embedFiles);
+		embedFiles = [...new Set(embedFiles)].filter(x => x != null);
+		logs({ settings: this.settings }, embedFiles);
 		// @ts-ignore
-		if (this.plugin.app.plugins.enabledPlugins.has("dataview")) {
+		if (this.plugin.app.plugins.enabledPlugins.has('dataview')) {
 			const dvApi = getAPI();
 			if (!dvApi) return embedFiles;
 			const dataviewMetadata = dvApi.page(file.path);
@@ -473,7 +498,7 @@ export class FilesManagement extends Publisher {
 			for (const field of this.settings.embed.keySendFile) {
 				const fieldValue = dataviewMetadata[field];
 				if (fieldValue != undefined) {
-					if (fieldValue.constructor.name === "Array") {
+					if (fieldValue.constructor.name === 'Array') {
 						// @ts-ignore
 						for (const value of fieldValue) {
 							const path = this.getImageByPath(
@@ -489,14 +514,13 @@ export class FilesManagement extends Publisher {
 							fieldValue.toString() as string,
 							frontmatterSettings
 						);
-						if (path)
-							embedFiles.push(path);
+						if (path) embedFiles.push(path);
 					}
 				}
 			}
 		}
 
-		return [...new Set(embedFiles)].filter((x) => x != null);
+		return [...new Set(embedFiles)].filter(x => x != null);
 	}
 
 	/**
@@ -514,26 +538,23 @@ export class FilesManagement extends Publisher {
 		newFiles: TFile[]
 	): Promise<TFile[]> {
 		for (const file of allFileWithPath) {
-			if (
-				githubSharedFiles.some((x) => x.file === file.converted.trim())
-			) {
+			if (githubSharedFiles.some(x => x.file === file.converted.trim())) {
 				const githubSharedFile = githubSharedFiles.find(
-					(x) => x.file === file.converted.trim()
+					x => x.file === file.converted.trim()
 				);
 				if (!githubSharedFile) continue;
-				const repoEditedTime = await this.getLastEditedTimeRepo(githubSharedFile);
-				const fileInVault = this.vault.getAbstractFileByPath(
-					file.real.trim()
-				);
+				const repoEditedTime =
+					await this.getLastEditedTimeRepo(githubSharedFile);
+				const fileInVault = this.vault.getAbstractFileByPath(file.real.trim());
 				if (
 					fileInVault &&
 					fileInVault instanceof TFile &&
-					fileInVault.extension === "md"
+					fileInVault.extension === 'md'
 				) {
 					const vaultEditedTime = new Date(fileInVault.stat.mtime);
 					if (repoEditedTime && vaultEditedTime > repoEditedTime) {
 						logs(
-							{settings: this.settings},
+							{ settings: this.settings },
 							`edited file : ${fileInVault.path} / ${vaultEditedTime} vs ${repoEditedTime}`
 						);
 						newFiles.push(fileInVault);

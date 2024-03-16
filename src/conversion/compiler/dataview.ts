@@ -3,14 +3,22 @@
  * @link https://github.com/oleeskild/obsidian-digital-garden/blob/main/src/compiler/DataviewCompiler.ts
  */
 
-import i18next from "i18next";
-import { Component, FrontMatterCache, htmlToMarkdown,TFile } from "obsidian";
-import { getAPI, isPluginEnabled,Literal, Success } from "obsidian-dataview";
-import GithubPublisher from "src/main";
-import { FrontmatterConvert, LinkedNotes, MultiProperties } from "src/settings/interface";
-import { logs, notif } from "src/utils";
+import i18next from 'i18next';
+import { Component, FrontMatterCache, htmlToMarkdown, TFile } from 'obsidian';
+import { getAPI, isPluginEnabled, Literal, Success } from 'obsidian-dataview';
+import GithubPublisher from 'src/main';
+import {
+	FrontmatterConvert,
+	LinkedNotes,
+	MultiProperties,
+} from 'src/settings/interface';
+import { logs, notif } from 'src/utils';
 
-import { convertToInternalGithub, convertWikilinks, escapeRegex } from "../links";
+import {
+	convertToInternalGithub,
+	convertWikilinks,
+	escapeRegex,
+} from '../links';
 
 /**
  * Convert dataview queries to markdown
@@ -33,13 +41,13 @@ export async function convertDataviewQueries(
 	path: string,
 	frontmatter: FrontMatterCache | undefined | null,
 	sourceFile: TFile,
-	properties: MultiProperties,
+	properties: MultiProperties
 ): Promise<string> {
 	const plugin = properties.plugin;
 	const app = plugin.app;
 	const settings = plugin.settings;
 	let replacedText = text;
-	const dataViewRegex = /```dataview\s(.+?)```/gsm;
+	const dataViewRegex = /```dataview\s(.+?)```/gms;
 	//@ts-ignore
 	const isDataviewEnabled = app.plugins.plugins.dataview;
 	if (!isDataviewEnabled || !isPluginEnabled(app)) return replacedText;
@@ -47,34 +55,46 @@ export async function convertDataviewQueries(
 	if (!dvApi) return replacedText;
 	const matches = text.matchAll(dataViewRegex);
 
-	const dataviewJsPrefix = dvApi.settings.dataviewJsKeyword || "dataviewjs";
-	const dataViewJsRegex = new RegExp(`\`\`\`${escapeRegex(dataviewJsPrefix)}\\s(.+?)\`\`\``, "gsm");
+	const dataviewJsPrefix = dvApi.settings.dataviewJsKeyword || 'dataviewjs';
+	const dataViewJsRegex = new RegExp(
+		`\`\`\`${escapeRegex(dataviewJsPrefix)}\\s(.+?)\`\`\``,
+		'gsm'
+	);
 	const dataviewJsMatches = text.matchAll(dataViewJsRegex);
 
-	const inlineQueryPrefix = dvApi.settings.inlineQueryPrefix || "=";
-	const inlineDataViewRegex = new RegExp(`\`${escapeRegex(inlineQueryPrefix)}(.+?)\``, "gsm");
+	const inlineQueryPrefix = dvApi.settings.inlineQueryPrefix || '=';
+	const inlineDataViewRegex = new RegExp(
+		`\`${escapeRegex(inlineQueryPrefix)}(.+?)\``,
+		'gsm'
+	);
 	const inlineMatches = text.matchAll(inlineDataViewRegex);
 
-	const inlineJsQueryPrefix = dvApi.settings.inlineJsQueryPrefix ||"$=";
-	const inlineJsDataViewRegex = new RegExp(`\`${escapeRegex(inlineJsQueryPrefix)}(.+?)\``, "gsm");
+	const inlineJsQueryPrefix = dvApi.settings.inlineJsQueryPrefix || '$=';
+	const inlineJsDataViewRegex = new RegExp(
+		`\`${escapeRegex(inlineJsQueryPrefix)}(.+?)\``,
+		'gsm'
+	);
 	const inlineJsMatches = text.matchAll(inlineJsDataViewRegex);
 	if (!matches && !inlineMatches && !dataviewJsMatches && !inlineJsMatches) {
-		logs({ settings }, "No dataview queries found");
+		logs({ settings }, 'No dataview queries found');
 		return replacedText;
 	}
-	const error = i18next.t("error.dataview");
+	const error = i18next.t('error.dataview');
 
 	/**
 	 * DQL Dataview - The SQL-like Dataview Query Language
 	 * Are in **code blocks**
 	 * @link https://blacksmithgu.github.io/obsidian-dataview/queries/dql-js-inline/#dataview-query-language-dql
-	*/
+	 */
 	for (const queryBlock of matches) {
 		try {
 			const block = queryBlock[0];
 			const query = queryBlock[1];
-			const {isInsideCallout, finalQuery} = sanitizeQuery(query);
-			let markdown = removeDataviewQueries(await dvApi.tryQueryMarkdown(finalQuery, path) as string, properties.frontmatter.general);
+			const { isInsideCallout, finalQuery } = sanitizeQuery(query);
+			let markdown = removeDataviewQueries(
+				(await dvApi.tryQueryMarkdown(finalQuery, path)) as string,
+				properties.frontmatter.general
+			);
 			if (isInsideCallout) {
 				markdown = surroundWithCalloutBlock(markdown);
 			}
@@ -96,11 +116,14 @@ export async function convertDataviewQueries(
 			const block = queryBlock[0];
 			const query = queryBlock[1];
 
-			const div = createEl("div");
+			const div = createEl('div');
 			const component = new Component();
 			await dvApi.executeJs(query, div, component, path);
 			component.load();
-			const markdown = removeDataviewQueries(div.innerHTML, properties.frontmatter.general);
+			const markdown = removeDataviewQueries(
+				div.innerHTML,
+				properties.frontmatter.general
+			);
 			replacedText = replacedText.replace(block, markdown);
 		} catch (e) {
 			logs({ settings, e: true }, e);
@@ -116,7 +139,7 @@ export async function convertDataviewQueries(
 	 * Syntax : `= query`
 	 * (the prefix can be changed in the settings)
 	 * @source https://blacksmithgu.github.io/obsidian-dataview/queries/dql-js-inline/#inline-dql
-	*/
+	 */
 	for (const inlineQuery of inlineMatches) {
 		try {
 			const code = inlineQuery[0];
@@ -124,9 +147,21 @@ export async function convertDataviewQueries(
 			let dataviewResult = dvApi.evaluateInline(query, path);
 			if (dataviewResult.successful) {
 				dataviewResult = dataviewResult as Success<Literal, string>;
-				replacedText = replacedText.replace(code, removeDataviewQueries(dataviewResult.value, properties.frontmatter.general));
+				replacedText = replacedText.replace(
+					code,
+					removeDataviewQueries(
+						dataviewResult.value,
+						properties.frontmatter.general
+					)
+				);
 			} else {
-				replacedText = replacedText.replace(code, removeDataviewQueries(dvApi.settings.renderNullAs, properties.frontmatter.general));
+				replacedText = replacedText.replace(
+					code,
+					removeDataviewQueries(
+						dvApi.settings.renderNullAs,
+						properties.frontmatter.general
+					)
+				);
 			}
 		} catch (e) {
 			logs({ settings, e: true }, e);
@@ -154,11 +189,14 @@ export async function convertDataviewQueries(
 				const query = ${query};
 				dv.paragraph(query);
 			`;
-			const div = createEl("div");
+			const div = createEl('div');
 			const component = new Component();
 			await dvApi.executeJs(evaluateQuery, div, component, path);
 			component.load();
-			const markdown = removeDataviewQueries(htmlToMarkdown(div.innerHTML), properties.frontmatter.general);
+			const markdown = removeDataviewQueries(
+				htmlToMarkdown(div.innerHTML),
+				properties.frontmatter.general
+			);
 			replacedText = replacedText.replace(code, markdown);
 		} catch (e) {
 			logs({ settings, e: true }, e);
@@ -166,7 +204,12 @@ export async function convertDataviewQueries(
 			return inlineJsQuery[0];
 		}
 	}
-	return await convertDataviewLinks(replacedText, frontmatter, sourceFile, properties);
+	return await convertDataviewLinks(
+		replacedText,
+		frontmatter,
+		sourceFile,
+		properties
+	);
 }
 
 /**
@@ -175,9 +218,14 @@ export async function convertDataviewQueries(
  * @param {@link FrontmatterConvert} frontmatterSettings the settings
  * @return {string} the text without dataview queries or the dataview queries in markdown
  */
-function removeDataviewQueries(dataviewMarkdown: Literal, frontmatterSettings: FrontmatterConvert): string {
+function removeDataviewQueries(
+	dataviewMarkdown: Literal,
+	frontmatterSettings: FrontmatterConvert
+): string {
 	const toString = dataviewMarkdown?.toString();
-	return frontmatterSettings.dataview && dataviewMarkdown && toString ? toString : "";
+	return frontmatterSettings.dataview && dataviewMarkdown && toString
+		? toString
+		: '';
 }
 
 /**
@@ -193,8 +241,8 @@ async function convertDataviewLinks(
 	md: string,
 	frontmatter: FrontMatterCache | undefined | null,
 	sourceFile: TFile,
-	properties: MultiProperties): Promise<string> {
-
+	properties: MultiProperties
+): Promise<string> {
 	const dataviewPath = getDataviewPath(md, properties.plugin);
 	md = await convertToInternalGithub(
 		md,
@@ -202,7 +250,7 @@ async function convertDataviewLinks(
 		sourceFile,
 		frontmatter,
 		properties
-	);	
+	);
 	return convertWikilinks(
 		md,
 		properties.frontmatter.general,
@@ -224,7 +272,7 @@ export function getDataviewPath(
 	markdown: string,
 	plugin: GithubPublisher
 ): LinkedNotes[] {
-	const { settings} = plugin;
+	const { settings } = plugin;
 	const vault = plugin.app.vault;
 	if (!settings.conversion.dataview) {
 		return [];
@@ -235,8 +283,8 @@ export function getDataviewPath(
 	if (!wikiMatches) return [];
 	if (wikiMatches) {
 		for (const wikiMatch of wikiMatches) {
-			const altText = wikiMatch[1].replace(/(.*)\\?\|/i, "");
-			const linkFrom = wikiMatch[1].replace(/\\?\|(.*)/, "");
+			const altText = wikiMatch[1].replace(/(.*)\\?\|/i, '');
+			const linkFrom = wikiMatch[1].replace(/\\?\|(.*)/, '');
 			const linked =
 				vault.getAbstractFileByPath(linkFrom) instanceof TFile
 					? (vault.getAbstractFileByPath(linkFrom) as TFile)
@@ -246,7 +294,7 @@ export function getDataviewPath(
 					linked,
 					linkFrom,
 					altText,
-					type: "link"
+					type: 'link',
 				});
 			}
 		}
@@ -259,13 +307,16 @@ export function getDataviewPath(
  * @param query {string} The query to sanitize
  * @returns {isInsideCallout: boolean, finalQuery: string}
  */
-function sanitizeQuery(query: string): {isInsideCallout: boolean, finalQuery: string} {
+function sanitizeQuery(query: string): {
+	isInsideCallout: boolean;
+	finalQuery: string;
+} {
 	let isInsideCallout = false;
-	const parts = query.split("\n");
+	const parts = query.split('\n');
 	const sanitized = [];
 
 	for (const part of parts) {
-		if (part.startsWith(">")) {
+		if (part.startsWith('>')) {
 			isInsideCallout = true;
 			sanitized.push(part.substring(1).trim());
 		} else {
@@ -274,9 +325,9 @@ function sanitizeQuery(query: string): {isInsideCallout: boolean, finalQuery: st
 	}
 	let finalQuery = query;
 	if (isInsideCallout) {
-		finalQuery = sanitized.join("\n");
+		finalQuery = sanitized.join('\n');
 	}
-	return {isInsideCallout, finalQuery};
+	return { isInsideCallout, finalQuery };
 }
 
 /**
@@ -285,7 +336,7 @@ function sanitizeQuery(query: string): {isInsideCallout: boolean, finalQuery: st
  * @returns {string} The text surrounded with a callout block
  */
 function surroundWithCalloutBlock(input: string): string {
-	const tmp = input.split("\n");
+	const tmp = input.split('\n');
 
-	return " " + tmp.join("\n> ");
+	return ' ' + tmp.join('\n> ');
 }

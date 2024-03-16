@@ -4,16 +4,31 @@
  * The id is different if a repo is set, and the smartkey is used as a name, prepended by a K
  */
 
-import i18next from "i18next";
-import {Command, Notice } from "obsidian";
+import i18next from 'i18next';
+import { Command, Notice } from 'obsidian';
 
-import GithubPublisher from "../main";
-import {MonoRepoProperties, MultiRepoProperties, Repository} from "../settings/interface";
-import {createLink, logs} from "../utils";
-import {checkRepositoryValidity, isShared} from "../utils/data_validation_test";
-import { frontmatterFromFile, getRepoFrontmatter } from "../utils/parse_frontmatter";
-import {purgeNotesRemote, shareOneNote} from ".";
-import {shareEditedOnly, uploadAllEditedNotes, uploadAllNotes, uploadNewNotes} from "./plugin_commands";
+import GithubPublisher from '../main';
+import {
+	MonoRepoProperties,
+	MultiRepoProperties,
+	Repository,
+} from '../settings/interface';
+import { createLink, logs } from '../utils';
+import {
+	checkRepositoryValidity,
+	isShared,
+} from '../utils/data_validation_test';
+import {
+	frontmatterFromFile,
+	getRepoFrontmatter,
+} from '../utils/parse_frontmatter';
+import { purgeNotesRemote, shareOneNote } from '.';
+import {
+	shareEditedOnly,
+	uploadAllEditedNotes,
+	uploadAllNotes,
+	uploadNewNotes,
+} from './plugin_commands';
 
 /**
  * Create the command to create a link to the note in the repo
@@ -21,32 +36,35 @@ import {shareEditedOnly, uploadAllEditedNotes, uploadAllNotes, uploadNewNotes} f
  * @param {GithubPublisher} plugin
  * @return {Promise<Command>}
  */
-export async function createLinkCallback(repo: Repository | null, plugin: GithubPublisher): Promise<Command> {
-	const id = repo ? `publisher-copy-link-K${repo.smartKey}` : "publisher-copy-link";
-	const common = i18next.t("common.repository");
-	let name = i18next.t("commands.copyLink.title");
+export async function createLinkCallback(
+	repo: Repository | null,
+	plugin: GithubPublisher
+): Promise<Command> {
+	const id = repo
+		? `publisher-copy-link-K${repo.smartKey}`
+		: 'publisher-copy-link';
+	const common = i18next.t('common.repository');
+	let name = i18next.t('commands.copyLink.title');
 	name = repo ? `${name} (${common} : ${repo.smartKey})` : name;
 	return {
 		id,
 		name,
 		hotkeys: [],
-		checkCallback: (checking) => {
+		checkCallback: checking => {
 			const file = plugin.app.workspace.getActiveFile();
 			const frontmatter = frontmatterFromFile(file, plugin);
 			if (
-				file && frontmatter && isShared(frontmatter, plugin.settings, file, repo)
+				file &&
+				frontmatter &&
+				isShared(frontmatter, plugin.settings, file, repo)
 			) {
 				if (!checking) {
 					const multiRepo: MultiRepoProperties = {
 						frontmatter: getRepoFrontmatter(plugin.settings, repo, frontmatter),
 						repo,
 					};
-					createLink(
-						file,
-						multiRepo,
-						plugin
-					);
-					new Notice(i18next.t("commands.copyLink.onActivation"));
+					createLink(file, multiRepo, plugin);
+					new Notice(i18next.t('commands.copyLink.onActivation'));
 				}
 				return true;
 			}
@@ -54,7 +72,6 @@ export async function createLinkCallback(repo: Repository | null, plugin: Github
 		},
 	} as Command;
 }
-
 
 /**
  * Command to delete file on the repo
@@ -64,10 +81,16 @@ export async function createLinkCallback(repo: Repository | null, plugin: Github
  * @param {string} branchName - The branch name to delete the file
  * @return {Promise<Command>}
  */
-export async function purgeNotesRemoteCallback(plugin: GithubPublisher, repo: Repository | null, branchName: string): Promise<Command> {
-	const id = repo ? `publisher-delete-clean-K${repo.smartKey}` : "publisher-delete-clean";
-	let name = i18next.t("commands.publisherDeleteClean");
-	const common = i18next.t("common.repository");
+export async function purgeNotesRemoteCallback(
+	plugin: GithubPublisher,
+	repo: Repository | null,
+	branchName: string
+): Promise<Command> {
+	const id = repo
+		? `publisher-delete-clean-K${repo.smartKey}`
+		: 'publisher-delete-clean';
+	let name = i18next.t('commands.publisherDeleteClean');
+	const common = i18next.t('common.repository');
 	name = repo ? `${name} (${common} : ${repo.smartKey})` : name;
 	//@ts-ignore
 	return {
@@ -76,7 +99,7 @@ export async function purgeNotesRemoteCallback(plugin: GithubPublisher, repo: Re
 		hotkeys: [],
 		//@ts-ignore
 		callback: async () => {
-			logs({settings: plugin.settings}, "Enabling purge command");
+			logs({ settings: plugin.settings }, 'Enabling purge command');
 			const frontmatter = getRepoFrontmatter(plugin.settings, repo);
 			const monoRepo: MonoRepoProperties = {
 				frontmatter: Array.isArray(frontmatter) ? frontmatter[0] : frontmatter,
@@ -84,11 +107,7 @@ export async function purgeNotesRemoteCallback(plugin: GithubPublisher, repo: Re
 			};
 			//@ts-ignore
 			const publisher = await plugin.reloadOctokit(repo?.smartKey);
-			await purgeNotesRemote(
-				publisher,
-				branchName,
-				monoRepo
-			);
+			await purgeNotesRemote(publisher, branchName, monoRepo);
 		},
 	} as Command;
 }
@@ -101,10 +120,13 @@ export async function purgeNotesRemoteCallback(plugin: GithubPublisher, repo: Re
  * @param {string} branchName - The branch name to upload the file
  * @return {Promise<Command>}
  */
-export async function shareOneNoteCallback(repo: Repository|null, plugin: GithubPublisher): Promise<Command> {
-	const id = repo ? `publisher-one-K${repo.smartKey}` : "publisher-one";
-	let name = i18next.t("commands.shareActiveFile");
-	const common = i18next.t("common.repository");
+export async function shareOneNoteCallback(
+	repo: Repository | null,
+	plugin: GithubPublisher
+): Promise<Command> {
+	const id = repo ? `publisher-one-K${repo.smartKey}` : 'publisher-one';
+	let name = i18next.t('commands.shareActiveFile');
+	const common = i18next.t('common.repository');
 	name = repo ? `${name} (${common} : ${repo.smartKey})` : name;
 	const octokit = await plugin.reloadOctokit(repo?.smartKey);
 	//@ts-ignore
@@ -112,19 +134,16 @@ export async function shareOneNoteCallback(repo: Repository|null, plugin: Github
 		id,
 		name,
 		hotkeys: [],
-		checkCallback: (checking) => {
+		checkCallback: checking => {
 			const file = plugin.app.workspace.getActiveFile();
 			const frontmatter = frontmatterFromFile(file, plugin);
 			if (
-				file && frontmatter && isShared(frontmatter, plugin.settings, file, repo)
+				file &&
+				frontmatter &&
+				isShared(frontmatter, plugin.settings, file, repo)
 			) {
 				if (!checking) {
-					shareOneNote(
-						octokit,
-						file,
-						repo,
-						file.basename,
-					);
+					shareOneNote(octokit, file, repo, file.basename);
 				}
 				return true;
 			}
@@ -141,16 +160,22 @@ export async function shareOneNoteCallback(repo: Repository|null, plugin: Github
  * @param {string} branchName - The branch name to upload the file
  * @return {Promise<Command>}
  */
-export async function uploadAllNotesCallback(plugin: GithubPublisher, repo: Repository|null, branchName: string): Promise<Command> {
-	const id = repo ? `publisher-publish-all-K${repo.smartKey}` : "publisher-publish-all";
-	let name = i18next.t("commands.uploadAllNotes");
-	const common = i18next.t("common.repository");
+export async function uploadAllNotesCallback(
+	plugin: GithubPublisher,
+	repo: Repository | null,
+	branchName: string
+): Promise<Command> {
+	const id = repo
+		? `publisher-publish-all-K${repo.smartKey}`
+		: 'publisher-publish-all';
+	let name = i18next.t('commands.uploadAllNotes');
+	const common = i18next.t('common.repository');
 	name = repo ? `${name} (${common} : ${repo.smartKey})` : name;
 	return {
 		id,
 		name,
 		callback: async () => {
-			await uploadAllNotes(plugin,repo, branchName);
+			await uploadAllNotes(plugin, repo, branchName);
 		},
 	} as Command;
 }
@@ -162,16 +187,22 @@ export async function uploadAllNotesCallback(plugin: GithubPublisher, repo: Repo
  * @param branchName {string} - The branch name to upload the file
  * @returns {Promise<Command>}
  */
-export async function uploadNewNotesCallback(plugin: GithubPublisher, repo: Repository | null, branchName: string): Promise<Command> {
-	const id = repo ? `publisher-upload-new-K${repo.smartKey}` : "publisher-upload-new";
-	let name = i18next.t("commands.uploadNewNotes");
-	const common = i18next.t("common.repository");
+export async function uploadNewNotesCallback(
+	plugin: GithubPublisher,
+	repo: Repository | null,
+	branchName: string
+): Promise<Command> {
+	const id = repo
+		? `publisher-upload-new-K${repo.smartKey}`
+		: 'publisher-upload-new';
+	let name = i18next.t('commands.uploadNewNotes');
+	const common = i18next.t('common.repository');
 	name = repo ? `${name} (${common} : ${repo.smartKey})` : name;
 	return {
 		id,
 		name,
 		callback: async () => {
-			await uploadNewNotes(plugin,branchName, repo);
+			await uploadNewNotes(plugin, branchName, repo);
 		},
 	} as Command;
 }
@@ -184,10 +215,16 @@ export async function uploadNewNotesCallback(plugin: GithubPublisher, repo: Repo
  * @param {string} branchName
  * @return {Promise<Command>}
  */
-export async function uploadAllEditedNotesCallback(plugin: GithubPublisher, repo: Repository|null, branchName: string): Promise<Command> {
-	const id = repo ? `publisher-upload-all-edited-new-K${repo.smartKey}` : "publisher-upload-all-edited-new";
-	let name = i18next.t("commands.uploadAllNewEditedNote");
-	const common = i18next.t("common.repository");
+export async function uploadAllEditedNotesCallback(
+	plugin: GithubPublisher,
+	repo: Repository | null,
+	branchName: string
+): Promise<Command> {
+	const id = repo
+		? `publisher-upload-all-edited-new-K${repo.smartKey}`
+		: 'publisher-upload-all-edited-new';
+	let name = i18next.t('commands.uploadAllNewEditedNote');
+	const common = i18next.t('common.repository');
 	name = repo ? `${name} (${common} : ${repo.smartKey})` : name;
 	return {
 		id,
@@ -206,10 +243,16 @@ export async function uploadAllEditedNotesCallback(plugin: GithubPublisher, repo
  * @param {GithubPublisher} plugin
  * @return {Promise<Command>}
  */
-export async function shareEditedOnlyCallback(repo: Repository|null, branchName: string, plugin: GithubPublisher): Promise<Command> {
-	const id = repo ? `publisher-upload-edited-K${repo.smartKey}` : "publisher-upload-edited";
-	let name = i18next.t("commands.uploadAllEditedNote");
-	const common = i18next.t("common.repository");
+export async function shareEditedOnlyCallback(
+	repo: Repository | null,
+	branchName: string,
+	plugin: GithubPublisher
+): Promise<Command> {
+	const id = repo
+		? `publisher-upload-edited-K${repo.smartKey}`
+		: 'publisher-upload-edited';
+	let name = i18next.t('commands.uploadAllEditedNote');
+	const common = i18next.t('common.repository');
 	name = repo ? `${name} (${common} : ${repo.smartKey})` : name;
 	return {
 		id,
@@ -227,19 +270,23 @@ export async function shareEditedOnlyCallback(repo: Repository|null, branchName:
  * @return {Promise<Command>}
  */
 
-export async function checkRepositoryValidityCallback(plugin: GithubPublisher, repo: Repository | null): Promise<Command> {
-	const id = repo ? `check-plugin-repo-validy-K${repo.smartKey}` : "check-plugin-repo-validy";
-	let name = i18next.t("commands.checkValidity.title");
-	const common = i18next.t("common.repository");
+export async function checkRepositoryValidityCallback(
+	plugin: GithubPublisher,
+	repo: Repository | null
+): Promise<Command> {
+	const id = repo
+		? `check-plugin-repo-validy-K${repo.smartKey}`
+		: 'check-plugin-repo-validy';
+	let name = i18next.t('commands.checkValidity.title');
+	const common = i18next.t('common.repository');
 	name = repo ? `${name} (${common} : ${repo.smartKey})` : name;
 	const octokit = await plugin.reloadOctokit(repo?.smartKey);
 	//@ts-ignore
 	return {
 		id,
 		name,
-		checkCallback: (checking) => {
-			if (plugin.app.workspace.getActiveFile())
-			{
+		checkCallback: checking => {
+			if (plugin.app.workspace.getActiveFile()) {
 				if (!checking) {
 					checkRepositoryValidity(
 						octokit,
@@ -253,6 +300,3 @@ export async function checkRepositoryValidityCallback(plugin: GithubPublisher, r
 		},
 	} as Command;
 }
-
-
-

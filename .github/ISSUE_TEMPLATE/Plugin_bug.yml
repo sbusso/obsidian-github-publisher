@@ -1,7 +1,7 @@
-name: "[Obsidian Github Publisher] Bug report"
+name: '[Obsidian Github Publisher] Bug report'
 description: Fill a bug report for Obsidian Github Publisher (Plugin)
-title: "[Bug]: "
-labels: ["🐛 Bug"]
+title: '[Bug]: '
+labels: ['🐛 Bug']
 assignees:
   - lisandra-dev
 body:
@@ -49,11 +49,11 @@ body:
   - type: checkboxes
     attributes:
       label: Issue validation
-      description: "Thanks to check if your issue is relative to the repository. Any non relative or duplicate issue will be closed."
+      description: 'Thanks to check if your issue is relative to the repository. Any non relative or duplicate issue will be closed.'
       options:
-        - label: "I checked the issue to prevent duplicate"
+        - label: 'I checked the issue to prevent duplicate'
           required: true
-        - label: "I checked my configurations files and the documentation"
+        - label: 'I checked my configurations files and the documentation'
           required: true
         - label: "My issue concern doesn't concern the [Mkdocs template](https://github.com/ObsidianPublisher/template-main/)"
           required: true
@@ -75,7 +75,7 @@ body:
     attributes:
       label: Plugin version
       description: Please copy and paste the version of the plugin you are using.
-      placeholder: "1.0.0"
+      placeholder: '1.0.0'
     validations:
       required: true
   - type: textarea

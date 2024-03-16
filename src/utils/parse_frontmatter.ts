@@ -3,10 +3,17 @@
  * See docs for all the condition
  */
 
-import { FrontMatterCache, normalizePath, TFile } from "obsidian";
-import GithubPublisher from "src/main";
+import { FrontMatterCache, normalizePath, TFile } from 'obsidian';
+import GithubPublisher from 'src/main';
 
-import { FolderSettings, FrontmatterConvert, GitHubPublisherSettings, Path, RepoFrontmatter, Repository } from "../settings/interface";
+import {
+	FolderSettings,
+	FrontmatterConvert,
+	GitHubPublisherSettings,
+	Path,
+	RepoFrontmatter,
+	Repository,
+} from '../settings/interface';
 
 /**
  * Retrieves the frontmatter settings for a given file.
@@ -21,7 +28,6 @@ export function getFrontmatterSettings(
 	settings: GitHubPublisherSettings,
 	repo: Repository | null
 ) {
-
 	let settingsConversion: FrontmatterConvert = {
 		convertWiki: settings.conversion.links.wiki,
 		attachment: settings.embed.attachments,
@@ -35,7 +41,9 @@ export function getFrontmatterSettings(
 		convertInternalLinks: settings.conversion.links.internal,
 	};
 
-	const shareAll = repo ? repo.shareAll?.enable : settings.plugin.shareAll?.enable;
+	const shareAll = repo
+		? repo.shareAll?.enable
+		: settings.plugin.shareAll?.enable;
 	if (shareAll) {
 		settingsConversion.unshared = true;
 	}
@@ -61,15 +69,15 @@ export function getFrontmatterSettings(
  * @returns The translated string value for the 'removeEmbed' setting. Possible values are 'keep', 'remove', 'links', or 'bake'.
  */
 function booleanRemoveEmbed(removeEmbed: unknown) {
-	if (removeEmbed === "true") {
-		return "keep";
-	} else if (removeEmbed === "false") {
-		return "remove";
-	} else if (removeEmbed === "links") {
-		return "links";
-	} else if (removeEmbed === "bake" || removeEmbed === "include") {
-		return "bake";
-	} else return "keep";
+	if (removeEmbed === 'true') {
+		return 'keep';
+	} else if (removeEmbed === 'false') {
+		return 'remove';
+	} else if (removeEmbed === 'links') {
+		return 'links';
+	} else if (removeEmbed === 'bake' || removeEmbed === 'include') {
+		return 'bake';
+	} else return 'keep';
 }
 
 /**
@@ -83,13 +91,17 @@ function booleanRemoveEmbed(removeEmbed: unknown) {
 export function getRepoFrontmatter(
 	settings: GitHubPublisherSettings,
 	repository: Repository | null,
-	frontmatter?: FrontMatterCache | null,
+	frontmatter?: FrontMatterCache | null
 ): RepoFrontmatter[] | RepoFrontmatter {
 	let github = repository ?? settings.github;
-	if (frontmatter && typeof frontmatter["shortRepo"] === "string" && frontmatter["shortRepo"] !== "default") {
+	if (
+		frontmatter &&
+		typeof frontmatter['shortRepo'] === 'string' &&
+		frontmatter['shortRepo'] !== 'default'
+	) {
 		const smartKey = frontmatter.shortRepo.toLowerCase();
 		const allOtherRepo = settings.github.otherRepo;
-		const shortRepo = allOtherRepo.find((repo) => {
+		const shortRepo = allOtherRepo.find(repo => {
 			return repo.smartKey.toLowerCase() === smartKey;
 		});
 		github = shortRepo ?? github;
@@ -98,7 +110,8 @@ export function getRepoFrontmatter(
 		branch: github.branch,
 		repo: github.repo,
 		owner: github.user,
-		autoclean: !settings.github.dryRun.enable && settings.upload.autoclean.enable,
+		autoclean:
+			!settings.github.dryRun.enable && settings.upload.autoclean.enable,
 		workflowName: github.workflow.name,
 		commitMsg: github.workflow.commitMessage,
 		automaticallyMergePR: github.automaticallyMergePR,
@@ -106,13 +119,19 @@ export function getRepoFrontmatter(
 		rateLimit: github.rateLimit,
 		dryRun: {
 			...settings.github.dryRun,
-			autoclean: settings.upload.autoclean.enable && settings.github.dryRun.enable
-		}
+			autoclean:
+				settings.upload.autoclean.enable && settings.github.dryRun.enable,
+		},
 	};
 	if (settings.upload.behavior === FolderSettings.fixed) {
 		repoFrontmatter.autoclean = false;
 	}
-	if (!frontmatter || (frontmatter.multipleRepo === undefined && frontmatter.repo === undefined && frontmatter.shortRepo === undefined)) {
+	if (
+		!frontmatter ||
+		(frontmatter.multipleRepo === undefined &&
+			frontmatter.repo === undefined &&
+			frontmatter.shortRepo === undefined)
+	) {
 		return parsePath(settings, repository, repoFrontmatter, frontmatter);
 	}
 	let isFrontmatterAutoClean = null;
@@ -120,7 +139,7 @@ export function getRepoFrontmatter(
 		const multipleRepo = parseMultipleRepo(frontmatter, repoFrontmatter);
 		return parsePath(settings, repository, multipleRepo, frontmatter);
 	} else if (frontmatter.repo) {
-		if (typeof frontmatter.repo === "object") {
+		if (typeof frontmatter.repo === 'object') {
 			if (frontmatter.repo.branch !== undefined) {
 				repoFrontmatter.branch = frontmatter.repo.branch;
 			}
@@ -135,12 +154,17 @@ export function getRepoFrontmatter(
 				isFrontmatterAutoClean = true;
 			}
 		} else {
-			const repo = frontmatter.repo.split("/");
+			const repo = frontmatter.repo.split('/');
 			isFrontmatterAutoClean = repo.length > 4 ? true : null;
 			repoFrontmatter = repositoryStringSlice(repo, repoFrontmatter);
 		}
 	} else if (frontmatter.shortRepo instanceof Array) {
-		return multipleShortKeyRepo(frontmatter, settings.github.otherRepo, repoFrontmatter, settings);
+		return multipleShortKeyRepo(
+			frontmatter,
+			settings.github.otherRepo,
+			repoFrontmatter,
+			settings
+		);
 	}
 	if (frontmatter.autoclean !== undefined && isFrontmatterAutoClean === null) {
 		repoFrontmatter.autoclean = frontmatter.autoclean;
@@ -175,7 +199,7 @@ function parseMultipleRepo(
 		frontmatter.multipleRepo.length > 0
 	) {
 		for (const repo of frontmatter.multipleRepo) {
-			if (typeof repo === "object") {
+			if (typeof repo === 'object') {
 				const repository: RepoFrontmatter = structuredClone(repoFrontmatter);
 				if (repo.branch !== undefined) {
 					repository.branch = repo.branch;
@@ -192,11 +216,9 @@ function parseMultipleRepo(
 				multipleRepo.push(repository);
 			} else {
 				//is string
-				const repoString = repo.split("/");
+				const repoString = repo.split('/');
 				const repository: RepoFrontmatter = structuredClone(repoFrontmatter);
-				multipleRepo.push(
-					repositoryStringSlice(repoString, repository)
-				);
+				multipleRepo.push(repositoryStringSlice(repoString, repository));
 			}
 		}
 	}
@@ -213,7 +235,7 @@ function removeDuplicateRepo(multipleRepo: RepoFrontmatter[]) {
 	return multipleRepo.filter(
 		(v, i, a) =>
 			a.findIndex(
-				(t) =>
+				t =>
 					t.repo === v.repo &&
 					t.owner === v.owner &&
 					t.branch === v.branch &&
@@ -229,15 +251,20 @@ function removeDuplicateRepo(multipleRepo: RepoFrontmatter[]) {
  * @param {Repository[]} allRepo - The list of all repo from the settings
  * @param {RepoFrontmatter} repoFrontmatter - The default repoFrontmatter (from the default settings)
  */
-function multipleShortKeyRepo(frontmatter: FrontMatterCache, allRepo: Repository[], repoFrontmatter: RepoFrontmatter, setting: GitHubPublisherSettings) {
+function multipleShortKeyRepo(
+	frontmatter: FrontMatterCache,
+	allRepo: Repository[],
+	repoFrontmatter: RepoFrontmatter,
+	setting: GitHubPublisherSettings
+) {
 	if (frontmatter.shortRepo instanceof Array) {
 		const multipleRepo: RepoFrontmatter[] = [];
 		for (const repo of frontmatter.shortRepo) {
 			const smartKey = repo.toLowerCase();
-			if (smartKey === "default") {
+			if (smartKey === 'default') {
 				multipleRepo.push(repoFrontmatter);
 			} else {
-				const shortRepo = allRepo.find((repo) => {
+				const shortRepo = allRepo.find(repo => {
 					return repo.smartKey.toLowerCase() === smartKey;
 				});
 				if (shortRepo) {
@@ -249,7 +276,7 @@ function multipleShortKeyRepo(frontmatter: FrontMatterCache, allRepo: Repository
 						automaticallyMergePR: shortRepo.automaticallyMergePR,
 						workflowName: shortRepo.workflow.name,
 						commitMsg: shortRepo.workflow.commitMessage,
-						dryRun: repoFrontmatter.dryRun
+						dryRun: repoFrontmatter.dryRun,
 					} as RepoFrontmatter;
 					const parsedPath = parsePath(setting, shortRepo, repo);
 					repo = Array.isArray(parsedPath) ? parsedPath[0] : parsedPath;
@@ -277,13 +304,16 @@ function multipleShortKeyRepo(frontmatter: FrontMatterCache, allRepo: Repository
  * @return {RepoFrontmatter}
  */
 
-function repositoryStringSlice(repo: string, repoFrontmatter: RepoFrontmatter): RepoFrontmatter {
+function repositoryStringSlice(
+	repo: string,
+	repoFrontmatter: RepoFrontmatter
+): RepoFrontmatter {
 	const newRepo: RepoFrontmatter = structuredClone(repoFrontmatter);
 	if (repo.length === 4) {
 		newRepo.branch = repo[2];
 		newRepo.repo = repo[1];
 		newRepo.owner = repo[0];
-		newRepo.autoclean = repo[3] === "true";
+		newRepo.autoclean = repo[3] === 'true';
 	}
 	if (repo.length === 3) {
 		newRepo.branch = repo[2];
@@ -307,11 +337,15 @@ function repositoryStringSlice(repo: string, repoFrontmatter: RepoFrontmatter): 
 export function getCategory(
 	frontmatter: FrontMatterCache | null | undefined,
 	settings: GitHubPublisherSettings,
-	paths: Path | undefined): string {
+	paths: Path | undefined
+): string {
 	const key = paths?.category?.key ?? settings.upload.yamlFolderKey;
-	const category = frontmatter && frontmatter[key] !== undefined ? frontmatter[key] : paths?.defaultName ?? settings.upload.defaultName;
+	const category =
+		frontmatter && frontmatter[key] !== undefined
+			? frontmatter[key]
+			: paths?.defaultName ?? settings.upload.defaultName;
 	if (category instanceof Array) {
-		return category.join("/");
+		return category.join('/');
 	}
 	return category;
 }
@@ -322,9 +356,10 @@ export function parsePath(
 	repoFrontmatter: RepoFrontmatter | RepoFrontmatter[],
 	frontmatter?: FrontMatterCache | null | undefined
 ): RepoFrontmatter[] | RepoFrontmatter {
-	repoFrontmatter = repoFrontmatter instanceof Array ? repoFrontmatter : [repoFrontmatter];
+	repoFrontmatter =
+		repoFrontmatter instanceof Array ? repoFrontmatter : [repoFrontmatter];
 	for (const repo of repoFrontmatter) {
-		const smartKey = repository ? repository.smartKey : "default";
+		const smartKey = repository ? repository.smartKey : 'default';
 		const path: Path = {
 			type: settings.upload.behavior,
 			defaultName: settings.upload.defaultName,
@@ -338,42 +373,57 @@ export function parsePath(
 			attachment: {
 				send: settings.embed.attachments,
 				folder: settings.embed.folder,
-			}
+			},
 		};
 
 		if (frontmatter?.[`${smartKey}.path`]) {
-			path.override = frontmatter[`${smartKey}.path`] instanceof Array ? frontmatter[`${smartKey}.path`].join("/") : frontmatter[`${smartKey}.path`];
+			path.override =
+				frontmatter[`${smartKey}.path`] instanceof Array
+					? frontmatter[`${smartKey}.path`].join('/')
+					: frontmatter[`${smartKey}.path`];
 			continue;
 		}
 		if (frontmatter?.[`${smartKey}.${path.category!.key}`]) {
 			const category = frontmatter[`${smartKey}.${path.category!.key}`];
-			path.category!.value = category instanceof Array ? category.join("/") : category;
+			path.category!.value =
+				category instanceof Array ? category.join('/') : category;
 		}
 		if (frontmatter?.[`${smartKey}.rootFolder`]) {
-			const rootFolder = frontmatter[`${smartKey}.rootFolder`] instanceof Array ? frontmatter[`${smartKey}.rootFolder`].join("/") : frontmatter[`${smartKey}.rootFolder`];
+			const rootFolder =
+				frontmatter[`${smartKey}.rootFolder`] instanceof Array
+					? frontmatter[`${smartKey}.rootFolder`].join('/')
+					: frontmatter[`${smartKey}.rootFolder`];
 			path.rootFolder = rootFolder;
 		}
 		if (frontmatter?.[`${smartKey}.defaultName`]) {
-			path.defaultName = frontmatter[`${smartKey}.defaultName`] instanceof Array ? frontmatter[`${smartKey}.defaultName`].join("/") : frontmatter[`${smartKey}.defaultName`];
+			path.defaultName =
+				frontmatter[`${smartKey}.defaultName`] instanceof Array
+					? frontmatter[`${smartKey}.defaultName`].join('/')
+					: frontmatter[`${smartKey}.defaultName`];
 		}
 		if (frontmatter?.[`${smartKey}.type`]) {
 			const type = frontmatter[`${smartKey}.type`].toLowerCase();
-			if (type.match(/^(fixed|obsidian|yaml)$/i)) path.type = frontmatter[`${smartKey}.type`] as FolderSettings;
+			if (type.match(/^(fixed|obsidian|yaml)$/i))
+				path.type = frontmatter[`${smartKey}.type`] as FolderSettings;
 		}
 		if (frontmatter?.[`${smartKey}.attachment`]) {
-			if (typeof frontmatter?.[`${smartKey}.attachment`] === "object") {
+			if (typeof frontmatter?.[`${smartKey}.attachment`] === 'object') {
 				path.attachment = {
-					send: frontmatter[`${smartKey}.attachment`]?.send ?? path.attachment?.send,
-					folder: frontmatter[`${smartKey}.attachment`]?.folder ?? path.attachment?.folder,
+					send:
+						frontmatter[`${smartKey}.attachment`]?.send ??
+						path.attachment?.send,
+					folder:
+						frontmatter[`${smartKey}.attachment`]?.folder ??
+						path.attachment?.folder,
 				};
 			} else {
 				path.attachment!.send = frontmatter[`${smartKey}.attachment`];
 			}
 		}
 		if (frontmatter?.[`${smartKey}.attachmentLinks`]) {
-			path.attachment!.folder = normalizePath(frontmatter[`${smartKey}.attachmentLinks`]
-				.toString()
-				.replace(/\/$/, ""));
+			path.attachment!.folder = normalizePath(
+				frontmatter[`${smartKey}.attachmentLinks`].toString().replace(/\/$/, '')
+			);
 		}
 		path.category!.value = getCategory(frontmatter, settings, path);
 		repo.path = path;
@@ -384,7 +434,8 @@ export function parsePath(
 function getFrontmatterSettingRepository(
 	repository: Repository | null,
 	frontmatter: FrontMatterCache | null | undefined,
-	frontConvert: FrontmatterConvert) {
+	frontConvert: FrontmatterConvert
+) {
 	if (!repository) return frontConvert;
 	const smartKey = repository.smartKey;
 	frontConvert = settingsLink(frontmatter, frontConvert, smartKey);
@@ -399,51 +450,63 @@ function getFrontmatterSettingRepository(
 	}
 
 	return frontConvert;
-
 }
 
 export function getLinkedFrontmatter(
 	originalFrontmatter: FrontMatterCache | null | undefined,
 	sourceFile: TFile | null | undefined,
-	plugin: GithubPublisher,
+	plugin: GithubPublisher
 ) {
 	const { settings } = plugin;
 	const { metadataCache, vault } = plugin.app;
 	const linkedKey = settings.plugin.setFrontmatterKey;
-	if (!linkedKey || !originalFrontmatter || !sourceFile) return originalFrontmatter;
+	if (!linkedKey || !originalFrontmatter || !sourceFile)
+		return originalFrontmatter;
 	const linkedFrontmatter = originalFrontmatter?.[linkedKey];
 	if (!linkedFrontmatter) return originalFrontmatter;
 	let linkedFile: undefined | string;
-	metadataCache.getFileCache(sourceFile)?.frontmatterLinks?.forEach((link) => {
-		const fieldRegex = new RegExp(`${linkedKey}(\\.\\d+)?`, "g");
+	metadataCache.getFileCache(sourceFile)?.frontmatterLinks?.forEach(link => {
+		const fieldRegex = new RegExp(`${linkedKey}(\\.\\d+)?`, 'g');
 		if (link.key.match(fieldRegex)) {
 			linkedFile = link.link;
 		}
 	});
 	if (!linkedFile) return originalFrontmatter;
-	const linkedFrontmatterFile = metadataCache.getFirstLinkpathDest(linkedFile, sourceFile.path) ?? vault.getAbstractFileByPath(linkedFile);
-	if (!linkedFrontmatterFile || !(linkedFrontmatterFile instanceof TFile)) return originalFrontmatter;
+	const linkedFrontmatterFile =
+		metadataCache.getFirstLinkpathDest(linkedFile, sourceFile.path) ??
+		vault.getAbstractFileByPath(linkedFile);
+	if (!linkedFrontmatterFile || !(linkedFrontmatterFile instanceof TFile))
+		return originalFrontmatter;
 	const linked = metadataCache.getFileCache(linkedFrontmatterFile)?.frontmatter;
 	if (!linked) return originalFrontmatter;
 	return linked;
 }
 
-export function frontmatterFromFile(file: TFile | null, plugin: GithubPublisher) {
+export function frontmatterFromFile(
+	file: TFile | null,
+	plugin: GithubPublisher
+) {
 	let frontmatter = null;
 	if (file) {
 		frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
 		const linkedFrontmatter = getLinkedFrontmatter(frontmatter, file, plugin);
-		frontmatter = linkedFrontmatter ? { ...linkedFrontmatter, ...frontmatter } : frontmatter;
+		frontmatter = linkedFrontmatter
+			? { ...linkedFrontmatter, ...frontmatter }
+			: frontmatter;
 	}
 	return frontmatter;
 }
 
-function settingsLink(frontmatter: FrontMatterCache | null | undefined, settingsConversion: FrontmatterConvert, smartKey?: string) {
-	let key = "links";
+function settingsLink(
+	frontmatter: FrontMatterCache | null | undefined,
+	settingsConversion: FrontmatterConvert,
+	smartKey?: string
+) {
+	let key = 'links';
 	if (smartKey) key = `${smartKey}.${key}`;
 	if (!frontmatter) return settingsConversion;
 	if (frontmatter[key] !== undefined) {
-		if (typeof frontmatter[key] === "object") {
+		if (typeof frontmatter[key] === 'object') {
 			if (frontmatter[key].convert !== undefined) {
 				settingsConversion.links = frontmatter[key].convert;
 			}
@@ -460,29 +523,48 @@ function settingsLink(frontmatter: FrontMatterCache | null | undefined, settings
 			settingsConversion.links = frontmatter[key];
 		}
 	}
-	if (frontmatter[`${key}.convert`] !== undefined) settingsConversion.links = frontmatter[`${key}.convert`];
-	if (frontmatter[`${key}.internals`] !== undefined) settingsConversion.convertInternalLinks = frontmatter[`${key}.internals`];
-	if (frontmatter[`${key}.mdlinks`] !== undefined) settingsConversion.convertWiki = frontmatter[`${key}.mdlinks`];
-	if (frontmatter[`${key}.nonShared`] !== undefined) settingsConversion.unshared = frontmatter[`${key}.nonShared`];
+	if (frontmatter[`${key}.convert`] !== undefined)
+		settingsConversion.links = frontmatter[`${key}.convert`];
+	if (frontmatter[`${key}.internals`] !== undefined)
+		settingsConversion.convertInternalLinks = frontmatter[`${key}.internals`];
+	if (frontmatter[`${key}.mdlinks`] !== undefined)
+		settingsConversion.convertWiki = frontmatter[`${key}.mdlinks`];
+	if (frontmatter[`${key}.nonShared`] !== undefined)
+		settingsConversion.unshared = frontmatter[`${key}.nonShared`];
 
-
-	if (frontmatter[smartKey ? `${smartKey}.mdlinks` : "mdlinks"] !== undefined) settingsConversion.convertWiki = frontmatter[smartKey ? `${smartKey}.mdlinks` : "mdlinks"];
-	if (frontmatter[smartKey ? `${smartKey}.internals` : "internals"] !== undefined) settingsConversion.convertInternalLinks = frontmatter[smartKey ? `${smartKey}.internals` : "internals"];
-	if (frontmatter[smartKey ? `${smartKey}.nonShared` : "nonShared"] !== undefined) settingsConversion.unshared = frontmatter[smartKey ? `${smartKey}.nonShared` : "nonShared"];
+	if (frontmatter[smartKey ? `${smartKey}.mdlinks` : 'mdlinks'] !== undefined)
+		settingsConversion.convertWiki =
+			frontmatter[smartKey ? `${smartKey}.mdlinks` : 'mdlinks'];
+	if (
+		frontmatter[smartKey ? `${smartKey}.internals` : 'internals'] !== undefined
+	)
+		settingsConversion.convertInternalLinks =
+			frontmatter[smartKey ? `${smartKey}.internals` : 'internals'];
+	if (
+		frontmatter[smartKey ? `${smartKey}.nonShared` : 'nonShared'] !== undefined
+	)
+		settingsConversion.unshared =
+			frontmatter[smartKey ? `${smartKey}.nonShared` : 'nonShared'];
 
 	return settingsConversion;
 }
 
-function settingsEmbed(frontmatter: FrontMatterCache | null | undefined, settingsConversion: FrontmatterConvert, smartkey?: string) {
+function settingsEmbed(
+	frontmatter: FrontMatterCache | null | undefined,
+	settingsConversion: FrontmatterConvert,
+	smartkey?: string
+) {
 	if (!frontmatter) return settingsConversion;
-	const key = smartkey ? `${smartkey}.embed` : "embed";
+	const key = smartkey ? `${smartkey}.embed` : 'embed';
 	if (frontmatter[key] !== undefined) {
-		if (typeof frontmatter[key] === "object") {
+		if (typeof frontmatter[key] === 'object') {
 			if (frontmatter[key].send !== undefined) {
 				settingsConversion.embed = frontmatter[key].send;
 			}
 			if (frontmatter[key].remove !== undefined) {
-				settingsConversion.removeEmbed = booleanRemoveEmbed(frontmatter[key].remove);
+				settingsConversion.removeEmbed = booleanRemoveEmbed(
+					frontmatter[key].remove
+				);
 			}
 			if (frontmatter[key].char !== undefined) {
 				settingsConversion.charEmbedLinks = frontmatter[key].char;
@@ -491,21 +573,33 @@ function settingsEmbed(frontmatter: FrontMatterCache | null | undefined, setting
 			settingsConversion.embed = frontmatter[key];
 		}
 	}
-	if (frontmatter[`${key}.send`] !== undefined) settingsConversion.embed = frontmatter[`${key}.send`];
-	if (frontmatter[`${key}.remove`] !== undefined) settingsConversion.removeEmbed = booleanRemoveEmbed(frontmatter[`${key}.remove`]);
-	if (frontmatter[`${key}.char`] !== undefined) settingsConversion.charEmbedLinks = frontmatter[`${key}.char`];
-	const removeEmbedKey = smartkey ? `${smartkey}.removeEmbed` : "removeEmbed";
-	if (frontmatter[removeEmbedKey] !== undefined) settingsConversion.removeEmbed = booleanRemoveEmbed(frontmatter[removeEmbedKey]);
+	if (frontmatter[`${key}.send`] !== undefined)
+		settingsConversion.embed = frontmatter[`${key}.send`];
+	if (frontmatter[`${key}.remove`] !== undefined)
+		settingsConversion.removeEmbed = booleanRemoveEmbed(
+			frontmatter[`${key}.remove`]
+		);
+	if (frontmatter[`${key}.char`] !== undefined)
+		settingsConversion.charEmbedLinks = frontmatter[`${key}.char`];
+	const removeEmbedKey = smartkey ? `${smartkey}.removeEmbed` : 'removeEmbed';
+	if (frontmatter[removeEmbedKey] !== undefined)
+		settingsConversion.removeEmbed = booleanRemoveEmbed(
+			frontmatter[removeEmbedKey]
+		);
 
 	return settingsConversion;
 }
 
-function settingAttachment(frontmatter: FrontMatterCache | undefined | null, settingsConversion: FrontmatterConvert, smartKey?: string) {
+function settingAttachment(
+	frontmatter: FrontMatterCache | undefined | null,
+	settingsConversion: FrontmatterConvert,
+	smartKey?: string
+) {
 	if (!frontmatter) return settingsConversion;
-	let key = "attachment";
+	let key = 'attachment';
 	if (smartKey) key = `${smartKey}.${key}`;
 	if (frontmatter[key] !== undefined) {
-		if (typeof frontmatter[key] === "object") {
+		if (typeof frontmatter[key] === 'object') {
 			if (frontmatter[key].send !== undefined) {
 				settingsConversion.attachment = frontmatter[key].send;
 			}
@@ -517,14 +611,15 @@ function settingAttachment(frontmatter: FrontMatterCache | undefined | null, set
 		}
 	}
 
-	if (frontmatter[`${key}.send`] !== undefined) settingsConversion.attachment = frontmatter[`${key}.send`];
-	if (frontmatter[`${key}.folder`] !== undefined) settingsConversion.attachmentLinks = frontmatter[`${key}.folder`];
+	if (frontmatter[`${key}.send`] !== undefined)
+		settingsConversion.attachment = frontmatter[`${key}.send`];
+	if (frontmatter[`${key}.folder`] !== undefined)
+		settingsConversion.attachmentLinks = frontmatter[`${key}.folder`];
 
 	if (settingsConversion.attachmentLinks) {
-		settingsConversion.attachmentLinks = normalizePath(settingsConversion.attachmentLinks
-			.toString()
-			.replace(/\/$/, ""));
+		settingsConversion.attachmentLinks = normalizePath(
+			settingsConversion.attachmentLinks.toString().replace(/\/$/, '')
+		);
 	}
 	return settingsConversion;
 }
-

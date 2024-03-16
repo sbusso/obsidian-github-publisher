@@ -1,6 +1,6 @@
-import { Octokit } from "@octokit/core";
-import i18next from "i18next";
-import { Base64 } from "js-base64";
+import { Octokit } from '@octokit/core';
+import i18next from 'i18next';
+import { Base64 } from 'js-base64';
 import {
 	arrayBufferToBase64,
 	MetadataCache,
@@ -9,41 +9,40 @@ import {
 	TFile,
 	TFolder,
 	Vault,
-} from "obsidian";
+} from 'obsidian';
 
-import { mainConverting } from "../conversion";
-import { convertToHTMLSVG } from "../conversion/compiler/excalidraw";
-import {
-	getImagePath,
-	getReceiptFolder,
-} from "../conversion/file_path";
-import GithubPublisher from "../main";
+import { mainConverting } from '../conversion';
+import { convertToHTMLSVG } from '../conversion/compiler/excalidraw';
+import { getImagePath, getReceiptFolder } from '../conversion/file_path';
+import GithubPublisher from '../main';
 import {
 	Deleted,
 	GitHubPublisherSettings,
-	MetadataExtractor, MonoProperties,
+	MetadataExtractor,
+	MonoProperties,
 	MonoRepoProperties,
 	MultiProperties,
 	MultiRepoProperties,
-	RepoFrontmatter, UploadedFiles,
-} from "../settings/interface";
-import {
-	logs,
-	noticeMobile,
-	notif,
-} from "../utils";
+	RepoFrontmatter,
+	UploadedFiles,
+} from '../settings/interface';
+import { logs, noticeMobile, notif } from '../utils';
 import {
 	checkEmptyConfiguration,
 	checkIfRepoIsInAnother,
 	forcePushAttachment,
 	isAttachment,
 	isShared,
-} from "../utils/data_validation_test";
-import { LOADING_ICON } from "../utils/icons";
-import { frontmatterFromFile, getFrontmatterSettings, getRepoFrontmatter } from "../utils/parse_frontmatter";
-import { ShareStatusBar } from "../utils/status_bar";
-import { deleteFromGithub } from "./delete";
-import { FilesManagement } from "./files";
+} from '../utils/data_validation_test';
+import { LOADING_ICON } from '../utils/icons';
+import {
+	frontmatterFromFile,
+	getFrontmatterSettings,
+	getRepoFrontmatter,
+} from '../utils/parse_frontmatter';
+import { ShareStatusBar } from '../utils/status_bar';
+import { deleteFromGithub } from './delete';
+import { FilesManagement } from './files';
 
 /** Class to manage the branch
  * @extends FilesManagement
@@ -63,10 +62,7 @@ export default class Publisher {
 	 * @param {GithubPublisher} plugin GithubPublisher instance
 	 */
 
-	constructor(
-		octokit: Octokit,
-		plugin: GithubPublisher,
-	) {
+	constructor(octokit: Octokit, plugin: GithubPublisher) {
 		this.vault = plugin.app.vault;
 		this.metadataCache = plugin.app.metadataCache;
 		this.settings = plugin.settings;
@@ -86,7 +82,7 @@ export default class Publisher {
 		linkedFiles: TFile[],
 		fileHistory: TFile[],
 		deepScan: boolean,
-		properties: MonoProperties,
+		properties: MonoProperties
 	) {
 		const uploadedFile: UploadedFiles[] = [];
 		const fileError: string[] = [];
@@ -106,8 +102,8 @@ export default class Publisher {
 				for (const file of linkedFiles) {
 					try {
 						if (!fileHistory.includes(file)) {
-							const isExcalidraw = file.name.includes("excalidraw");
-							if (file.extension === "md" && !isExcalidraw && deepScan) {
+							const isExcalidraw = file.name.includes('excalidraw');
+							if (file.extension === 'md' && !isExcalidraw && deepScan) {
 								const published = await this.publish(
 									file,
 									false,
@@ -122,22 +118,17 @@ export default class Publisher {
 								isAttachment(file.name) &&
 								properties.frontmatter.general.attachment
 							) {
-								const published = await this.uploadImage(
-									file,
-									properties
-								);
+								const published = await this.uploadImage(file, properties);
 								fileHistory.push(file);
 								if (published) {
 									uploadedFile.push(published);
 								}
-
 							}
 						}
 						statusBar.increment();
 					} catch (e) {
 						new Notice(
-							(i18next.t("error.unablePublishNote", { file: file.name })
-							)
+							i18next.t('error.unablePublishNote', { file: file.name })
 						);
 						fileError.push(file.name);
 						logs({ settings: this.settings, e: true }, e);
@@ -146,9 +137,7 @@ export default class Publisher {
 				statusBar.finish(8000);
 			} catch (e) {
 				logs({ settings: this.settings, e: true }, e);
-				new Notice(
-					(i18next.t("error.errorPublish", { repo: repoFrontmatter }))
-				);
+				new Notice(i18next.t('error.errorPublish', { repo: repoFrontmatter }));
 				statusBar.error();
 			}
 		}
@@ -172,23 +161,25 @@ export default class Publisher {
 		autoclean: boolean = false,
 		repo: MultiRepoProperties | MonoRepoProperties,
 		fileHistory: TFile[] = [],
-		deepScan: boolean = false,
+		deepScan: boolean = false
 	) {
-		const shareFiles = new FilesManagement(
-			this.octokit,
-			this.plugin,
-		);
+		const shareFiles = new FilesManagement(this.octokit, this.plugin);
 		const frontmatter = frontmatterFromFile(file, this.plugin);
-		const repoFrontmatter = getRepoFrontmatter(this.settings, repo.repo, frontmatter);
-		const isNotEmpty = await checkEmptyConfiguration(repoFrontmatter, this.plugin);
+		const repoFrontmatter = getRepoFrontmatter(
+			this.settings,
+			repo.repo,
+			frontmatter
+		);
+		const isNotEmpty = await checkEmptyConfiguration(
+			repoFrontmatter,
+			this.plugin
+		);
 		repo.frontmatter = repoFrontmatter;
 		if (
 			!isShared(frontmatter, this.settings, file, repo.repo) ||
 			fileHistory.includes(file) ||
-			!checkIfRepoIsInAnother(
-				repoFrontmatter,
-				repo.frontmatter
-			) || !isNotEmpty
+			!checkIfRepoIsInAnother(repoFrontmatter, repo.frontmatter) ||
+			!isNotEmpty
 		) {
 			return false;
 		}
@@ -200,10 +191,7 @@ export default class Publisher {
 				this.settings,
 				repo.repo
 			);
-			let embedFiles = shareFiles.getSharedEmbed(
-				file,
-				frontmatterSettings
-			);
+			let embedFiles = shareFiles.getSharedEmbed(file, frontmatterSettings);
 			embedFiles = await shareFiles.getMetadataLinks(
 				file,
 				embedFiles,
@@ -220,14 +208,25 @@ export default class Publisher {
 					repo: repo.frontmatter,
 				},
 				repository: repo.repo,
-				filepath: getReceiptFolder(file, repo.repo, this.plugin, repo.frontmatter),
+				filepath: getReceiptFolder(
+					file,
+					repo.repo,
+					this.plugin,
+					repo.frontmatter
+				),
 			};
-			text = await mainConverting(text, file, frontmatter, linkedFiles, multiProperties);
+			text = await mainConverting(
+				text,
+				file,
+				frontmatter,
+				linkedFiles,
+				multiProperties
+			);
 			const path = multiProperties.filepath;
 			const repoFrontmatter = Array.isArray(repo.frontmatter)
 				? repo.frontmatter
 				: [repo.frontmatter];
-			let multiRepMsg = "";
+			let multiRepMsg = '';
 			for (const repo of repoFrontmatter) {
 				multiRepMsg += `[${repo.owner}/${repo.repo}/${repo.branch}] `;
 			}
@@ -241,29 +240,32 @@ export default class Publisher {
 					plugin: this.plugin,
 					frontmatter: {
 						general: frontmatterSettings,
-						repo
+						repo,
 					},
 					repository: multiProperties.repository,
 					filepath: multiProperties.filepath,
 				};
-				const deleted =
-					await this.uploadOnMultipleRepo(
-						file,
-						text,
-						path,
-						embedFiles,
-						fileHistory,
-						deepScan,
-						shareFiles,
-						autoclean,
-						monoProperties
-					);
+				const deleted = await this.uploadOnMultipleRepo(
+					file,
+					text,
+					path,
+					embedFiles,
+					fileHistory,
+					deepScan,
+					shareFiles,
+					autoclean,
+					monoProperties
+				);
 				fileDeleted.push(deleted.deleted);
 				// convert to UploadedFiles[]
 				updated.push(deleted.uploaded);
 				fileError.push(...deleted.error);
 			}
-			return { deleted: fileDeleted[0], uploaded: updated[0], error: fileError };
+			return {
+				deleted: fileDeleted[0],
+				uploaded: updated[0],
+				error: fileError,
+			};
 		} catch (e) {
 			logs({ settings: this.settings, e: true }, e);
 			return false;
@@ -292,19 +294,31 @@ export default class Publisher {
 		deepScan: boolean,
 		shareFiles: FilesManagement,
 		autoclean: boolean,
-		properties: MonoProperties,
+		properties: MonoProperties
 	) {
 		const load = this.plugin.addStatusBarItem();
 		//add a little load icon from lucide icons, using SVG
-		load.createEl("span", { cls: ["obsidian-publisher", "loading", "icons"] }).innerHTML = LOADING_ICON;
-		load.createEl("span", { text: i18next.t("statusBar.loading"), cls: ["obsidian-publisher", "loading", "icons"] });
-		embedFiles = await this.cleanLinkedImageIfAlreadyInRepo(embedFiles, properties);
+		load.createEl('span', {
+			cls: ['obsidian-publisher', 'loading', 'icons'],
+		}).innerHTML = LOADING_ICON;
+		load.createEl('span', {
+			text: i18next.t('statusBar.loading'),
+			cls: ['obsidian-publisher', 'loading', 'icons'],
+		});
+		embedFiles = await this.cleanLinkedImageIfAlreadyInRepo(
+			embedFiles,
+			properties
+		);
 		const repo = properties.frontmatter.repo;
 		notif(
 			{ settings: this.settings },
 			`Upload ${file.name}:${path} on ${repo.owner}/${repo.repo}:${this.branchName}`
 		);
-		const notifMob = noticeMobile("wait", LOADING_ICON, i18next.t("statusBar.loading"));
+		const notifMob = noticeMobile(
+			'wait',
+			LOADING_ICON,
+			i18next.t('statusBar.loading')
+		);
 		let deleted: Deleted = {
 			success: false,
 			deleted: [],
@@ -312,12 +326,19 @@ export default class Publisher {
 		};
 		load.remove();
 		notifMob?.hide();
-		const uploaded: UploadedFiles | undefined = await this.uploadText(text, path, file.name, repo);
+		const uploaded: UploadedFiles | undefined = await this.uploadText(
+			text,
+			path,
+			file.name,
+			repo
+		);
 		if (!uploaded) {
 			return {
 				deleted,
 				uploaded: [],
-				error: [`Error while uploading ${file.name} to ${repo.owner}/${repo.repo}/${repo.branch}`]
+				error: [
+					`Error while uploading ${file.name} to ${repo.owner}/${repo.repo}/${repo.branch}`,
+				],
 			};
 		}
 		const embeded = await this.statusBarForEmbed(
@@ -330,20 +351,15 @@ export default class Publisher {
 		const embeddedUploaded = embeded.uploaded;
 		embeddedUploaded.push(uploaded);
 		if (autoclean || repo.dryRun.autoclean) {
-			deleted = await deleteFromGithub(
-				true,
-				this.branchName,
-				shareFiles,
-				{
-					frontmatter: repo,
-					repo: properties.repository,
-				} as MonoRepoProperties
-			);
+			deleted = await deleteFromGithub(true, this.branchName, shareFiles, {
+				frontmatter: repo,
+				repo: properties.repository,
+			} as MonoRepoProperties);
 		}
 		return {
 			deleted,
 			uploaded: embeddedUploaded,
-			error: embeded.error
+			error: embeded.error,
 		};
 	}
 
@@ -358,25 +374,25 @@ export default class Publisher {
 	async upload(
 		content: string,
 		path: string,
-		title: string = "",
+		title: string = '',
 		repoFrontmatter: RepoFrontmatter
 	) {
 		if (!repoFrontmatter.repo) {
 			new Notice(
-				"Config error : You need to define a github repo in the plugin settings"
+				'Config error : You need to define a github repo in the plugin settings'
 			);
 			throw {};
 		}
 		if (!repoFrontmatter.owner) {
 			new Notice(
-				"Config error : You need to define your github username in the plugin settings"
+				'Config error : You need to define your github username in the plugin settings'
 			);
 			throw {};
 		}
 		const octokit = this.octokit;
 		let msg = `PUSH NOTE : ${title}`;
 		if (isAttachment(path)) {
-			title = path.split("/")[path.split("/").length - 1];
+			title = path.split('/')[path.split('/').length - 1];
 			msg = `PUSH ATTACHMENT : ${title}`;
 		}
 		const payload = {
@@ -385,16 +401,16 @@ export default class Publisher {
 			path,
 			message: `Adding ${title}`,
 			content,
-			sha: "",
+			sha: '',
 			branch: this.branchName,
 		};
 		const result: UploadedFiles = {
 			isUpdated: false,
-			file: title
+			file: title,
 		};
 		try {
 			const response = await octokit.request(
-				"GET /repos/{owner}/{repo}/contents/{path}",
+				'GET /repos/{owner}/{repo}/contents/{path}',
 				{
 					owner: repoFrontmatter.owner,
 					repo: repoFrontmatter.repo,
@@ -403,23 +419,17 @@ export default class Publisher {
 				}
 			);
 			// @ts-ignore
-			if (response.status === 200 && response.data.type === "file") {
+			if (response.status === 200 && response.data.type === 'file') {
 				// @ts-ignore
 				payload.sha = response.data.sha;
 				result.isUpdated = true;
 			}
 		} catch {
-			notif(
-				{ settings: this.settings },
-				i18next.t("error.normal")
-			);
+			notif({ settings: this.settings }, i18next.t('error.normal'));
 		}
 
 		payload.message = msg;
-		await octokit.request(
-			"PUT /repos/{owner}/{repo}/contents/{path}",
-			payload
-		);
+		await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', payload);
 		return result;
 	}
 
@@ -427,19 +437,16 @@ export default class Publisher {
 	 * Convert image in base64 and upload it to GitHub
 	 */
 
-	async uploadImage(
-		imageFile: TFile,
-		properties: MonoProperties,
-	) {
+	async uploadImage(imageFile: TFile, properties: MonoProperties) {
 		let imageBin = await this.vault.readBinary(imageFile);
 		const repoFrontmatter = properties.frontmatter.repo;
 		let image64 = arrayBufferToBase64(imageBin);
-		if (imageFile.name.includes("excalidraw")) {
+		if (imageFile.name.includes('excalidraw')) {
 			const svg = await convertToHTMLSVG(imageFile, this.plugin.app);
 			if (svg) {
 				//convert to base64
 				image64 = Base64.encode(svg).toString();
-				imageBin = Buffer.from(image64, "base64");
+				imageBin = Buffer.from(image64, 'base64');
 			}
 		}
 		const path = getImagePath(
@@ -449,33 +456,33 @@ export default class Publisher {
 		);
 		if (this.settings.github.dryRun.enable) {
 			const folderName = this.settings.github.dryRun.folderName
-				.replace("{{repo}}", repoFrontmatter.repo)
-				.replace("{{branch}}", repoFrontmatter.branch)
-				.replace("{{owner}}", repoFrontmatter.owner);
+				.replace('{{repo}}', repoFrontmatter.repo)
+				.replace('{{branch}}', repoFrontmatter.branch)
+				.replace('{{owner}}', repoFrontmatter.owner);
 			const dryRunPath = normalizePath(`${folderName}/${path}`);
 			const isAlreadyExist = this.vault.getAbstractFileByPath(dryRunPath);
 			if (isAlreadyExist && isAlreadyExist instanceof TFile) {
-				const needToByUpdated = isAlreadyExist.stat.mtime > imageFile.stat.mtime;
+				const needToByUpdated =
+					isAlreadyExist.stat.mtime > imageFile.stat.mtime;
 				if (needToByUpdated) {
 					this.vault.modifyBinary(isAlreadyExist, imageBin);
 				}
 				return {
 					isUpdated: needToByUpdated,
-					file: imageFile.name
+					file: imageFile.name,
 				};
-			} 
-			const folder = dryRunPath.split("/").slice(0, -1).join("/");
+			}
+			const folder = dryRunPath.split('/').slice(0, -1).join('/');
 			const folderExists = this.vault.getAbstractFileByPath(folder);
 			if (!folderExists || !(folderExists instanceof TFolder))
 				await this.vault.createFolder(folder);
 			await this.vault.createBinary(dryRunPath, imageBin);
 			return {
 				isUpdated: true,
-				file: imageFile.name
+				file: imageFile.name,
 			};
 		}
-		return await this.upload(image64, path, "", properties.frontmatter.repo);
-
+		return await this.upload(image64, path, '', properties.frontmatter.repo);
 	}
 
 	/**
@@ -490,15 +497,15 @@ export default class Publisher {
 	async uploadText(
 		text: string,
 		path: string,
-		title: string = "",
-		repoFrontmatter: RepoFrontmatter,
+		title: string = '',
+		repoFrontmatter: RepoFrontmatter
 	): Promise<UploadedFiles | undefined> {
 		if (this.settings.github.dryRun.enable) {
 			//create a new file in the vault
 			const folderName = this.settings.github.dryRun.folderName
-				.replace("{{repo}}", repoFrontmatter.repo)
-				.replace("{{branch}}", repoFrontmatter.branch)
-				.replace("{{owner}}", repoFrontmatter.owner);
+				.replace('{{repo}}', repoFrontmatter.repo)
+				.replace('{{branch}}', repoFrontmatter.branch)
+				.replace('{{owner}}', repoFrontmatter.owner);
 
 			const newPath = normalizePath(`${folderName}/${path}`);
 			const isAlreadyExist = this.vault.getAbstractFileByPath(newPath);
@@ -507,27 +514,22 @@ export default class Publisher {
 				await this.vault.modify(isAlreadyExist, text);
 				return {
 					isUpdated: true,
-					file: title
+					file: title,
 				};
 			} //create
-			const folder = newPath.split("/").slice(0, -1).join("/");
+			const folder = newPath.split('/').slice(0, -1).join('/');
 			const folderExists = this.vault.getAbstractFileByPath(folder);
 			if (!folderExists || !(folderExists instanceof TFolder))
 				await this.vault.createFolder(folder);
 			await this.vault.create(newPath, text);
 			return {
 				isUpdated: false,
-				file: title
+				file: title,
 			};
 		}
 		try {
 			const contentBase64 = Base64.encode(text).toString();
-			return await this.upload(
-				contentBase64,
-				path,
-				title,
-				repoFrontmatter
-			);
+			return await this.upload(contentBase64, path, title, repoFrontmatter);
 		} catch (e) {
 			notif({ settings: this.settings, e: true }, e);
 			return undefined;
@@ -552,18 +554,13 @@ export default class Publisher {
 					const contents = await this.vault.adapter.read(file);
 					const path =
 						this.settings.upload.metadataExtractorPath +
-						"/" +
-						file.split("/").pop();
+						'/' +
+						file.split('/').pop();
 					repoFrontmatter = Array.isArray(repoFrontmatter)
 						? repoFrontmatter
 						: [repoFrontmatter];
 					for (const repo of repoFrontmatter) {
-						await this.uploadText(
-							contents,
-							path,
-							file.split("/").pop(),
-							repo
-						);
+						await this.uploadText(contents, path, file.split('/').pop(), repo);
 					}
 				}
 			}
@@ -584,7 +581,7 @@ export default class Publisher {
 		}
 		const octokit = this.octokit;
 		await octokit.request(
-			"POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
+			'POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches',
 			{
 				owner: repoFrontmatter.owner,
 				repo: repoFrontmatter.repo,
@@ -595,7 +592,7 @@ export default class Publisher {
 		while (!finished) {
 			await sleep(10000);
 			const workflowGet = await octokit.request(
-				"GET /repos/{owner}/{repo}/actions/runs",
+				'GET /repos/{owner}/{repo}/actions/runs',
 				{
 					owner: repoFrontmatter.owner,
 					repo: repoFrontmatter.repo,
@@ -603,11 +600,13 @@ export default class Publisher {
 			);
 			if (workflowGet.data.workflow_runs.length > 0) {
 				const build = workflowGet.data.workflow_runs.find(
-					(run) =>
+					run =>
 						run.name ===
-						repoFrontmatter.workflowName.replace(".yml", "").replace(".yaml", "")
+						repoFrontmatter.workflowName
+							.replace('.yml', '')
+							.replace('.yaml', '')
 				);
-				if (build && build.status === "completed") {
+				if (build && build.status === 'completed') {
 					finished = true;
 					return true;
 				}
@@ -615,7 +614,6 @@ export default class Publisher {
 		}
 		return false;
 	}
-
 
 	/**
 	 * Remove all image embed in the note if they are already in the repo (same path)
@@ -625,7 +623,7 @@ export default class Publisher {
 	 */
 	async cleanLinkedImageIfAlreadyInRepo(
 		embedFiles: TFile[],
-		properties: MonoProperties,
+		properties: MonoProperties
 	): Promise<TFile[]> {
 		const newLinkedFiles: TFile[] = [];
 		for (const file of embedFiles) {
@@ -647,40 +645,49 @@ export default class Publisher {
 					}
 					//first search if the file exists
 					const response = await this.octokit.request(
-						"GET /repos/{owner}/{repo}/contents/{path}",
+						'GET /repos/{owner}/{repo}/contents/{path}',
 						{
 							owner: repoFrontmatter.repo.owner,
 							repo: repoFrontmatter.repo.repo,
 							path: imagePath,
 							ref: this.branchName,
-						});
+						}
+					);
 					if (response.status === 200) {
-						const reply =  await this.octokit.request(
-							"GET /repos/{owner}/{repo}/commits",
+						const reply = await this.octokit.request(
+							'GET /repos/{owner}/{repo}/commits',
 							{
 								owner: repoFrontmatter.repo.owner,
 								repo: repoFrontmatter.repo.repo,
 								path: imagePath,
 								sha: this.branchName,
-							});
+							}
+						);
 						if (reply.status === 200) {
 							const data = reply.data;
 							const lastEditedInRepo = data[0]?.commit?.committer?.date;
-							const lastEditedDate = lastEditedInRepo ? new Date(lastEditedInRepo) : undefined;
+							const lastEditedDate = lastEditedInRepo
+								? new Date(lastEditedInRepo)
+								: undefined;
 							const lastEditedAttachment = new Date(file.stat.mtime);
 							//if the file in the vault is newer than the file in the repo, push it
-							if (lastEditedDate && lastEditedAttachment > lastEditedDate || !lastEditedDate) {
+							if (
+								(lastEditedDate && lastEditedAttachment > lastEditedDate) ||
+								!lastEditedDate
+							) {
 								newLinkedFiles.push(file);
-							} else logs({ settings: this.settings }, i18next.t("error.alreadyExists", { file: file.name }));
+							} else
+								logs(
+									{ settings: this.settings },
+									i18next.t('error.alreadyExists', { file: file.name })
+								);
 						}
 					}
 				} catch (e) {
 					newLinkedFiles.push(file);
 				}
 			}
-
 		}
 		return newLinkedFiles;
 	}
 }
-

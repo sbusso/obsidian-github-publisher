@@ -1,7 +1,7 @@
-name: "[Obsidian Github Publisher] Feature request"
+name: '[Obsidian Github Publisher] Feature request'
 description: Suggest an idea for the obsidian GitHub Publisher plugin.
-title: "[FR]: "
-labels: ["✨ Enhancement"]
+title: '[FR]: '
+labels: ['✨ Enhancement']
 assignees:
   - lisandra-dev
 body:
@@ -12,9 +12,9 @@ body:
   - type: checkboxes
     attributes:
       label: Issue validation
-      description: "Thanks to check if your issue is relative to the repository. Any non relative or duplicate issue will be closed."
+      description: 'Thanks to check if your issue is relative to the repository. Any non relative or duplicate issue will be closed.'
       options:
-        - label: "I checked the issue to prevent duplicate"
+        - label: 'I checked the issue to prevent duplicate'
           required: true
         - label: "My issue concern doesn't concern the [Mkdocs template](https://github.com/ObsidianPublisher/template-main/)"
           required: true
@@ -22,8 +22,8 @@ body:
     id: describe-request
     attributes:
       label: Is your feature related to a problem ?
-      description: If you found a solution with the inherent limit I had with Obsidian, please, add it here! 
-      placeholder: "Tell me the original problem"
+      description: If you found a solution with the inherent limit I had with Obsidian, please, add it here!
+      placeholder: 'Tell me the original problem'
   - type: textarea
     id: describe-solution
     attributes:
@@ -39,7 +39,7 @@ body:
     id: version
     attributes:
       label: OS
-      description: What OS do you use ? 
+      description: What OS do you use ?
       multiple: true
       options:
         - IOS
@@ -61,7 +61,7 @@ body:
     attributes:
       label: Plugin version
       description: What version of the plugin do you use ?
-      placeholder: "1.0.0"
+      placeholder: '1.0.0'
     validations:
       required: true
   - type: textarea

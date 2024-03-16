@@ -1,15 +1,19 @@
-import { FrontMatterCache, TFile } from "obsidian";
-import slugify from "slugify";
+import { FrontMatterCache, TFile } from 'obsidian';
+import slugify from 'slugify';
 
 import {
 	FrontmatterConvert,
 	GitHubPublisherSettings,
 	LinkedNotes,
 	MultiProperties,
-} from "../settings/interface";
-import { isAttachment, noTextConversion } from "../utils/data_validation_test";
-import { createRelativePath, linkIsInFormatter, textIsInFrontmatter } from "./file_path";
-import { replaceText } from "./find_and_replace_text";
+} from '../settings/interface';
+import { isAttachment, noTextConversion } from '../utils/data_validation_test';
+import {
+	createRelativePath,
+	linkIsInFormatter,
+	textIsInFrontmatter,
+} from './file_path';
+import { replaceText } from './find_and_replace_text';
 
 /**
  * Convert wikilinks to markdown
@@ -26,14 +30,12 @@ export function convertWikilinks(
 	conditionConvert: FrontmatterConvert,
 	linkedFiles: LinkedNotes[],
 	settings: GitHubPublisherSettings,
-	sourceFrontmatter: FrontMatterCache | undefined | null,
+	sourceFrontmatter: FrontMatterCache | undefined | null
 ): string {
 	const convertWikilink = conditionConvert.convertWiki;
 	const imageSettings = conditionConvert.attachment;
 	const convertLinks = conditionConvert.links;
-	if (
-		noTextConversion(conditionConvert)
-	) {
+	if (noTextConversion(conditionConvert)) {
 		return fileContent;
 	}
 	const wikiRegex = /!?\[\[.*?\]\]/g;
@@ -42,8 +44,8 @@ export function convertWikilinks(
 		const fileRegex = /(\[\[).*?([\]|])/;
 		for (const wikiMatch of wikiMatches) {
 			const fileMatch = wikiMatch.match(fileRegex);
-			let isEmbed = wikiMatch.startsWith("!") ? "!" : "";
-			const isEmbedBool = wikiMatch.startsWith("!");
+			let isEmbed = wikiMatch.startsWith('!') ? '!' : '';
+			const isEmbedBool = wikiMatch.startsWith('!');
 			if (fileMatch) {
 				// @ts-ignore
 				let linkCreator = wikiMatch;
@@ -58,120 +60,144 @@ export function convertWikilinks(
 				 * result.
 				 */
 				const fileName = fileMatch[0]
-					.replaceAll("[", "")
-					.replaceAll("|", "")
-					.replaceAll("]", "")
-					.replaceAll("\\", "");
+					.replaceAll('[', '')
+					.replaceAll('|', '')
+					.replaceAll(']', '')
+					.replaceAll('\\', '');
 				const StrictFileName = fileMatch[0]
-					.replaceAll("[", "")
-					.replaceAll("|", "")
-					.replaceAll("]", "")
-					.replaceAll("\\", "")
-					.replaceAll("../", "")
-					.replaceAll("./", "")
-					.replace(/#.*/, "");
+					.replaceAll('[', '')
+					.replaceAll('|', '')
+					.replaceAll(']', '')
+					.replaceAll('\\', '')
+					.replaceAll('../', '')
+					.replaceAll('./', '')
+					.replace(/#.*/, '');
 				//get last from path
 				const linkedFile = linkedFiles.find(
-					(item) => item.linkFrom.replace(/#.*/, "") === StrictFileName
+					item => item.linkFrom.replace(/#.*/, '') === StrictFileName
 				);
 				if (linkedFile && !linkIsInFormatter(linkedFile, sourceFrontmatter)) {
 					let altText: string;
-					if (linkedFile.linked.extension !== "md") {
-						altText =
-							linkedFile.altText
-								? linkedFile.altText
-								: "";
+					if (linkedFile.linked.extension !== 'md') {
+						altText = linkedFile.altText ? linkedFile.altText : '';
 					} else {
-						altText =
-							linkedFile.altText
-								? linkedFile.altText
-								: linkedFile.linked.basename;
-						altText = altText
-							.replace("#", " > ")
-							.replace(/ > \^\w*/, "");
+						altText = linkedFile.altText
+							? linkedFile.altText
+							: linkedFile.linked.basename;
+						altText = altText.replace('#', ' > ').replace(/ > \^\w*/, '');
 					}
 					const removeEmbed =
-						(conditionConvert.removeEmbed === "remove" || conditionConvert.removeEmbed === "bake") &&
+						(conditionConvert.removeEmbed === 'remove' ||
+							conditionConvert.removeEmbed === 'bake') &&
 						isEmbedBool &&
-						linkedFile.linked.extension === "md";
-					if (isEmbedBool && linkedFile.linked.extension === "md" && conditionConvert.removeEmbed === "links") {
+						linkedFile.linked.extension === 'md';
+					if (
+						isEmbedBool &&
+						linkedFile.linked.extension === 'md' &&
+						conditionConvert.removeEmbed === 'links'
+					) {
 						isEmbed = `${conditionConvert.charEmbedLinks} `;
-						linkCreator = linkCreator.replace("!", isEmbed);
+						linkCreator = linkCreator.replace('!', isEmbed);
 					}
 					if (convertWikilink) {
 						const altMatch = wikiMatch.match(/(\|).*(]])/);
-						const altCreator = fileName.split("/");
+						const altCreator = fileName.split('/');
 						let altLink = creatorAltLink(
 							altMatch as RegExpMatchArray,
 							altCreator,
-							fileName.split(".").at(-1) as string,
+							fileName.split('.').at(-1) as string,
 							fileName
 						);
 
-						altLink = altLink
-							.replace("#", " > ")
-							.replace(/ > \^\w*/, "");
-						linkCreator = createMarkdownLinks(fileName, isEmbed, altLink, settings);
+						altLink = altLink.replace('#', ' > ').replace(/ > \^\w*/, '');
+						linkCreator = createMarkdownLinks(
+							fileName,
+							isEmbed,
+							altLink,
+							settings
+						);
 					} else {
 						const altMatch = wikiMatch.match(/(\|).*(]])/);
-						linkCreator = addAltForWikilinks(altMatch as RegExpMatchArray, linkCreator);
+						linkCreator = addAltForWikilinks(
+							altMatch as RegExpMatchArray,
+							linkCreator
+						);
 					}
 					if (
-						linkedFile.linked.extension === "md" &&
+						linkedFile.linked.extension === 'md' &&
 						!convertLinks &&
 						!isEmbedBool
 					) {
 						linkCreator = altText;
 					}
 					if (
-						(!imageSettings &&
-							isAttachment(linkedFile.linked.extension)) ||
+						(!imageSettings && isAttachment(linkedFile.linked.extension)) ||
 						removeEmbed
 					) {
-						linkCreator = "";
+						linkCreator = '';
 					}
-					fileContent = replaceText(fileContent, wikiMatch, linkCreator, settings, true);
-
-				} else if (!fileName.startsWith("http") && !textIsInFrontmatter(fileName, sourceFrontmatter)) {
+					fileContent = replaceText(
+						fileContent,
+						wikiMatch,
+						linkCreator,
+						settings,
+						true
+					);
+				} else if (
+					!fileName.startsWith('http') &&
+					!textIsInFrontmatter(fileName, sourceFrontmatter)
+				) {
 					const altMatch = wikiMatch.match(/(\|).*(]])/);
-					const altCreator = fileName.split("/");
+					const altCreator = fileName.split('/');
 
 					let altLink = creatorAltLink(
 						altMatch as RegExpMatchArray,
 						altCreator,
-						fileName.split(".").at(-1) as string,
+						fileName.split('.').at(-1) as string,
 						fileName
 					);
-					altLink = altLink
-						.replace("#", " > ")
-						.replace(/ > \^\w*/, "");
+					altLink = altLink.replace('#', ' > ').replace(/ > \^\w*/, '');
 					const removeEmbed =
 						!isAttachment(fileName.trim()) &&
-						conditionConvert.removeEmbed === "remove" &&
+						conditionConvert.removeEmbed === 'remove' &&
 						isEmbedBool;
-					if (isEmbedBool && conditionConvert.removeEmbed === "links" && !isAttachment(fileName.trim())) {
-						isEmbed = conditionConvert.charEmbedLinks + " ";
-						linkCreator = linkCreator.replace("!", isEmbed);
+					if (
+						isEmbedBool &&
+						conditionConvert.removeEmbed === 'links' &&
+						!isAttachment(fileName.trim())
+					) {
+						isEmbed = conditionConvert.charEmbedLinks + ' ';
+						linkCreator = linkCreator.replace('!', isEmbed);
 					}
 					if (convertWikilink) {
-						linkCreator = createMarkdownLinks(fileName, isEmbed, altLink, settings);
+						linkCreator = createMarkdownLinks(
+							fileName,
+							isEmbed,
+							altLink,
+							settings
+						);
 					} else {
-						linkCreator = addAltForWikilinks(altMatch as RegExpMatchArray, linkCreator);
+						linkCreator = addAltForWikilinks(
+							altMatch as RegExpMatchArray,
+							linkCreator
+						);
 					}
-					if (
-						!isAttachment(fileName.trim()) &&
-						!convertLinks &&
-						!isEmbedBool
-					) {
+					if (!isAttachment(fileName.trim()) && !convertLinks && !isEmbedBool) {
 						linkCreator = altLink;
 					}
 					if (
 						(!imageSettings && isAttachment(fileName.trim())) ||
 						removeEmbed
 					) {
-						linkCreator = "";
+						linkCreator = '';
 					}
-					fileContent = replaceText(fileContent, wikiMatch, linkCreator, settings, true);
+					fileContent = replaceText(
+						fileContent,
+						wikiMatch,
+						linkCreator,
+						settings,
+						true
+					);
 				}
 			}
 		}
@@ -188,19 +214,22 @@ function addAltForWikilinks(altMatch: RegExpMatchArray, linkCreator: string) {
 	if (!altMatch) {
 		const link = linkCreator.match(/\[{2}(.*)\]{2}/);
 		/** need group 1 because group 0 is the whole match */
-		const altText = link ? link[1]
-			.replace("#", " > ")
-			.replace(/ > \^\w*/, "")
-			: "";
+		const altText = link
+			? link[1].replace('#', ' > ').replace(/ > \^\w*/, '')
+			: '';
 		return linkCreator.replace(/\[{2}(.*)\]{2}/, `[[$1|${altText}]]`);
 	}
 	return linkCreator;
 }
 
-
-function createMarkdownLinks(fileName: string, isEmbed: string, altLink: string, settings: GitHubPublisherSettings) {
+function createMarkdownLinks(
+	fileName: string,
+	isEmbed: string,
+	altLink: string,
+	settings: GitHubPublisherSettings
+) {
 	const markdownName = !isAttachment(fileName.trim())
-		? fileName.replace(/#.*/, "").trim() + ".md"
+		? fileName.replace(/#.*/, '').trim() + '.md'
 		: fileName.trim();
 	const anchorMatch = fileName.match(/(#.*)/);
 	let anchor = anchorMatch ? anchorMatch[0] : null;
@@ -209,21 +238,25 @@ function createMarkdownLinks(fileName: string, isEmbed: string, altLink: string,
 	return `${isEmbed}[${altLink}](${encodedURI}${anchor})`;
 }
 
-
-function slugifyAnchor(anchor: string | null, settings: GitHubPublisherSettings) {
-	const slugifySetting = typeof(settings.conversion.links.slugify) === "string" ? settings.conversion.links.slugify : "disable";
-	if (anchor && slugifySetting !== "disable") {
+function slugifyAnchor(
+	anchor: string | null,
+	settings: GitHubPublisherSettings
+) {
+	const slugifySetting =
+		typeof settings.conversion.links.slugify === 'string'
+			? settings.conversion.links.slugify
+			: 'disable';
+	if (anchor && slugifySetting !== 'disable') {
 		switch (settings.conversion.links.slugify) {
-		case "lower":
-			return anchor.toLowerCase().replaceAll(" ", "-");
-		case "strict":
-			return slugify(anchor, { lower: true, strict: true });
-		default:
-			return anchor;
+			case 'lower':
+				return anchor.toLowerCase().replaceAll(' ', '-');
+			case 'strict':
+				return slugify(anchor, { lower: true, strict: true });
+			default:
+				return anchor;
 		}
-
 	}
-	return anchor?.replaceAll(" ", "%20") ?? "";
+	return anchor?.replaceAll(' ', '%20') ?? '';
 }
 
 /**
@@ -235,7 +268,7 @@ function slugifyAnchor(anchor: string | null, settings: GitHubPublisherSettings)
 
 function addAltText(link: string, linkedFile: LinkedNotes): string {
 	if (link.match(/\[{2}.*\]{2}/) && !link.match(/(\|).*(]])/)) {
-		return link.replace("|", "").replace("]]", `|${linkedFile.altText}]]`);
+		return link.replace('|', '').replace(']]', `|${linkedFile.altText}]]`);
 	}
 	return link;
 }
@@ -247,7 +280,7 @@ function addAltText(link: string, linkedFile: LinkedNotes): string {
  */
 
 export function escapeRegex(filepath: string): string {
-	return filepath.replace(/[/\-\\^$*+?.()|[\]{}]/g, "\\$&");
+	return filepath.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
 /**
@@ -259,7 +292,7 @@ export async function convertToInternalGithub(
 	linkedFiles: LinkedNotes[],
 	sourceFile: TFile,
 	frontmatter: FrontMatterCache | undefined | null,
-	properties: MultiProperties,
+	properties: MultiProperties
 ): Promise<string> {
 	const frontmatterSettings = properties.frontmatter.general;
 	const settings = properties.plugin.settings;
@@ -280,36 +313,46 @@ export async function convertToInternalGithub(
 			sourceFile,
 			linkedFile,
 			frontmatter,
-			properties,
+			properties
 		);
-		pathInGithub = pathInGithub.replace(".md", "");
-		let anchor = linkedFile.anchor ? linkedFile.anchor : "";
-		let linkInMarkdown = escapeRegex(linkedFile.linkFrom.replace(anchor, "")).replaceAll(" ", "%20") + anchor.replace("^", "\\^");
-		linkInMarkdown = linkInMarkdown.replaceAll(" ", "%20");
+		pathInGithub = pathInGithub.replace('.md', '');
+		let anchor = linkedFile.anchor ? linkedFile.anchor : '';
+		let linkInMarkdown =
+			escapeRegex(linkedFile.linkFrom.replace(anchor, '')).replaceAll(
+				' ',
+				'%20'
+			) + anchor.replace('^', '\\^');
+		linkInMarkdown = linkInMarkdown.replaceAll(' ', '%20');
 		const escapedLinkedFile = escapeRegex(linkedFile.linkFrom);
 		const regexToReplace = new RegExp(
 			`(\\[{2}${escapedLinkedFile}(\\\\?\\|.*?)?\\]{2})|(\\[.*?\\]\\((${escapedLinkedFile}|${linkInMarkdown})\\))`,
-			"g"
+			'g'
 		);
 		const matchedLink = fileContent.match(regexToReplace);
 		if (matchedLink) {
 			for (const link of matchedLink) {
-				const regToReplace = new RegExp(`((${escapedLinkedFile})|(${linkInMarkdown}))`);
+				const regToReplace = new RegExp(
+					`((${escapedLinkedFile})|(${linkInMarkdown}))`
+				);
 				let pathInGithubWithAnchor = pathInGithub;
 				if (linkedFile.anchor) {
-					pathInGithub = pathInGithub.replace(/#.*/, "");
+					pathInGithub = pathInGithub.replace(/#.*/, '');
 					pathInGithubWithAnchor += linkedFile.anchor;
 				}
 				let newLink = link.replace(regToReplace, pathInGithubWithAnchor); //strict replacement of link
 				if (link.match(/\[.*\]\(.*\)/)) {
-					if (linkedFile.linked.extension === "md" && !linkedFile.linked.name.includes("excalidraw")) {
+					if (
+						linkedFile.linked.extension === 'md' &&
+						!linkedFile.linked.name.includes('excalidraw')
+					) {
 						anchor = slugifyAnchor(anchor, settings);
-						pathInGithub = `${pathInGithub.replaceAll(" ", "%20")}.md#${anchor}`;
+						pathInGithub = `${pathInGithub.replaceAll(' ', '%20')}.md#${anchor}`;
 						//probably useless
 						// pathInGithub = pathInGithub.replace(/(\.md)?(#.*)/, ".md$2");
-						pathInGithub = !pathInGithub.match(/(#.*)/) && !pathInGithub.endsWith(".md") ?
-							`${pathInGithub}.md`
-							: pathInGithub;
+						pathInGithub =
+							!pathInGithub.match(/(#.*)/) && !pathInGithub.endsWith('.md')
+								? `${pathInGithub}.md`
+								: pathInGithub;
 					}
 					const altText = link.match(/\[(.*)\]/)![1];
 					newLink = `[${altText}](${encodeURI(pathInGithub)})`; //encode to URI for compatibility with github
@@ -339,13 +382,12 @@ export function creatorAltLink(
 	match: string
 ): string {
 	if (altMatch) {
-		return altMatch[0].replace("]]", "").replace("|", "");
+		return altMatch[0].replace(']]', '').replace('|', '');
 	}
-	if (fileExtension === "md") {
+	if (fileExtension === 'md') {
 		return altCreator.length > 1
 			? altCreator[altCreator.length - 1]
 			: altCreator[0]; //alt text based on filename for markdown files
 	}
-	return match.split("/").at(-1) as string; //alt text based on filename for other files
+	return match.split('/').at(-1) as string; //alt text based on filename for other files
 }
-

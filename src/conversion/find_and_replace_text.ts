@@ -1,8 +1,7 @@
+import { logs } from 'src/utils';
 
-import { logs } from "src/utils";
-
-import { FIND_REGEX, GitHubPublisherSettings } from "../settings/interface";
-import { escapeRegex } from "./links";
+import { FIND_REGEX, GitHubPublisherSettings } from '../settings/interface';
+import { escapeRegex } from './links';
 
 /**
  * Convert a string to a regex object when the string is in the form of a regex (enclosed by /)
@@ -11,13 +10,18 @@ import { escapeRegex } from "./links";
  * @returns RegExp The regex object
  */
 
-export function createRegexFromText(toReplace: string, withflag?: string): RegExp {
+export function createRegexFromText(
+	toReplace: string,
+	withflag?: string
+): RegExp {
 	let flags = withflag;
 	if (!withflag) {
 		const flagsRegex = toReplace.match(/\/([gimy]+)$/);
-		flags = flagsRegex ? Array.from(new Set(flagsRegex[1].split(""))).join("") : "";
+		flags = flagsRegex
+			? Array.from(new Set(flagsRegex[1].split(''))).join('')
+			: '';
 	}
-	return new RegExp(toReplace.replace(/\/(.+)\/.*/, "$1"), flags);
+	return new RegExp(toReplace.replace(/\/(.+)\/.*/, '$1'), flags);
 }
 
 /**
@@ -36,16 +40,22 @@ export default function findAndReplaceText(
 	if (!settings.conversion.censorText) {
 		return text;
 	}
-	const censoring = after ? settings.conversion.censorText.filter((censor) => censor.after) : settings.conversion.censorText.filter((censor) => !censor.after);
+	const censoring = after
+		? settings.conversion.censorText.filter(censor => censor.after)
+		: settings.conversion.censorText.filter(censor => !censor.after);
 	for (const censor of censoring) {
 		if (censor.entry.trim().length > 0) {
 			const toReplace = censor.entry;
 			const replaceWith = censor.replace;
 			if (toReplace.match(FIND_REGEX)) {
 				const regex = createRegexFromText(toReplace, censor.flags);
-				text = censor.inCodeBlocks ? text.replace(regex, replaceWith) : replaceText(text, regex, replaceWith, settings);
+				text = censor.inCodeBlocks
+					? text.replace(regex, replaceWith)
+					: replaceText(text, regex, replaceWith, settings);
 			} else {
-				text = censor.inCodeBlocks ? text.replace(toReplace, replaceWith) : replaceText(text, toReplace, replaceWith, settings);
+				text = censor.inCodeBlocks
+					? text.replace(toReplace, replaceWith)
+					: replaceText(text, toReplace, replaceWith, settings);
 			}
 		}
 	}
@@ -67,22 +77,23 @@ export function replaceText(
 	pattern: string | RegExp,
 	replaceWith: string,
 	settings: GitHubPublisherSettings,
-	links?: boolean):string {
-	let regexWithString: string ;
+	links?: boolean
+): string {
+	let regexWithString: string;
 	let regex: RegExp;
 
 	if (pattern instanceof RegExp) {
-		regexWithString = "```[\\s\\S]*?```|`[^`]*`|";
-		if (links) regexWithString += "\\\\?!?";
+		regexWithString = '```[\\s\\S]*?```|`[^`]*`|';
+		if (links) regexWithString += '\\\\?!?';
 		regexWithString += pattern.source;
-		regex = new RegExp(regexWithString, `g${pattern.flags.replace("g", "")}`);
+		regex = new RegExp(regexWithString, `g${pattern.flags.replace('g', '')}`);
 	} else {
-		regexWithString = "```[\\s\\S]*?```|`[^`]*`|\\\\?!?";
-		if (links) regexWithString += "\\\\?!?";
+		regexWithString = '```[\\s\\S]*?```|`[^`]*`|\\\\?!?';
+		if (links) regexWithString += '\\\\?!?';
 		regexWithString += escapeRegex(pattern);
-		regex = new RegExp(regexWithString, "g");
+		regex = new RegExp(regexWithString, 'g');
 	}
-	return fileContent.replace(regex, (match) => {
+	return fileContent.replace(regex, match => {
 		if (match.match(/`[^`]*`/) || match.match(/```[\s\S]*?```/)) {
 			return match;
 		} else if (links && match.match(/^\\/)) {
@@ -91,13 +102,10 @@ export function replaceText(
 			try {
 				const replaceWithParsed = JSON.parse(`"${replaceWith}"`);
 				return match.replace(pattern, replaceWithParsed);
-			}
-			catch(e) {
-				logs({settings, e: true}, e);
+			} catch (e) {
+				logs({ settings, e: true }, e);
 				return match.replace(pattern, replaceWith);
 			}
 		}
 	});
 }
-
-

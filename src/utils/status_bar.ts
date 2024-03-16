@@ -1,8 +1,13 @@
-import i18next from "i18next";
-import { Notice } from "obsidian";
+import i18next from 'i18next';
+import { Notice } from 'obsidian';
 
-import { noticeMobile } from ".";
-import { ERROR_ICONS, FOUND_ATTACHMENTS, HOURGLASS_ICON, SUCCESS_ICON } from "./icons";
+import { noticeMobile } from '.';
+import {
+	ERROR_ICONS,
+	FOUND_ATTACHMENTS,
+	HOURGLASS_ICON,
+	SUCCESS_ICON,
+} from './icons';
 
 // Credit : https://github.com/oleeskild/obsidian-digital-garden/ @oleeskild
 
@@ -37,14 +42,21 @@ export class ShareStatusBar {
 		this.numberOfNotesToPublish = numberOfNotesToPublish;
 		this.attachment = attachment;
 
-		const typeAttachment = this.attachment ? i18next.t("common.attachments") : i18next.t("common.files");
-		const msg = i18next.t("statusBar.markedForSharing", { nb: this.numberOfNotesToPublish, type: typeAttachment });
-		this.icon = this.statusBarItem.createEl("span", { cls: ["obsidian-publisher", "icons"]});
-		this.statusBarItem.addClass("found-attachments");
+		const typeAttachment = this.attachment
+			? i18next.t('common.attachments')
+			: i18next.t('common.files');
+		const msg = i18next.t('statusBar.markedForSharing', {
+			nb: this.numberOfNotesToPublish,
+			type: typeAttachment,
+		});
+		this.icon = this.statusBarItem.createEl('span', {
+			cls: ['obsidian-publisher', 'icons'],
+		});
+		this.statusBarItem.addClass('found-attachments');
 		this.icon.innerHTML = FOUND_ATTACHMENTS;
-		this.status = this.statusBarItem.createEl("span", { text: `${msg}` });
-		this.status.addClass("found-attachments");
-		this.noticeMobile = noticeMobile("wait", FOUND_ATTACHMENTS, msg);
+		this.status = this.statusBarItem.createEl('span', { text: `${msg}` });
+		this.status.addClass('found-attachments');
+		this.noticeMobile = noticeMobile('wait', FOUND_ATTACHMENTS, msg);
 	}
 
 	/**
@@ -52,22 +64,31 @@ export class ShareStatusBar {
 	 */
 
 	increment() {
-		const typeAttachment = this.attachment ? i18next.t("common.attachments") : i18next.t("common.files");
-		const msg = i18next.t("statusBar.sharing", { type: typeAttachment.toLowerCase() });
+		const typeAttachment = this.attachment
+			? i18next.t('common.attachments')
+			: i18next.t('common.files');
+		const msg = i18next.t('statusBar.sharing', {
+			type: typeAttachment.toLowerCase(),
+		});
 		this.icon.innerHTML = HOURGLASS_ICON;
 		this.status.setText(
-			i18next.t("statusBar.counter", { msg, counter: ++this.counter, nb: this.numberOfNotesToPublish })
+			i18next.t('statusBar.counter', {
+				msg,
+				counter: ++this.counter,
+				nb: this.numberOfNotesToPublish,
+			})
 		);
-		this.statusBarItem.addClass("sharing");
-		this.statusBarItem.removeClass("found-attachments");
+		this.statusBarItem.addClass('sharing');
+		this.statusBarItem.removeClass('found-attachments');
 
-		if (!this.noticeMobile?.noticeEl?.children[0]?.classList?.contains("load")) {
+		if (
+			!this.noticeMobile?.noticeEl?.children[0]?.classList?.contains('load')
+		) {
 			setTimeout(() => {
 				this.noticeMobile?.hide();
 			}, 4000);
-			this.noticeMobile = noticeMobile("load", HOURGLASS_ICON, msg);
+			this.noticeMobile = noticeMobile('load', HOURGLASS_ICON, msg);
 		}
-
 	}
 
 	/**
@@ -76,22 +97,25 @@ export class ShareStatusBar {
 	 */
 
 	finish(displayDurationMillisec: number) {
-		const msg = this.attachment ?
-			i18next.t("statusBar.success",
-				{
-					action: i18next.t("common.shared"),
-					type: i18next.t("common.attachments")
+		const msg = this.attachment
+			? i18next.t('statusBar.success', {
+					action: i18next.t('common.shared'),
+					type: i18next.t('common.attachments'),
 				})
-			: i18next.t("statusBar.success", {
-				action: i18next.t("common.published"),
-				type: i18next.t("common.files")
-			});
+			: i18next.t('statusBar.success', {
+					action: i18next.t('common.published'),
+					type: i18next.t('common.files'),
+				});
 		this.icon.innerHTML = SUCCESS_ICON;
 		this.status.setText(
-			i18next.t("statusBar.counter", { msg, counter: this.counter, nb: this.numberOfNotesToPublish })
+			i18next.t('statusBar.counter', {
+				msg,
+				counter: this.counter,
+				nb: this.numberOfNotesToPublish,
+			})
 		);
-		this.statusBarItem.addClass("success");
-		this.statusBarItem.removeClass("sharing");
+		this.statusBarItem.addClass('success');
+		this.statusBarItem.removeClass('sharing');
 		this.noticeMobile?.hide();
 		setTimeout(() => {
 			this.statusBarItem.remove();
@@ -99,7 +123,6 @@ export class ShareStatusBar {
 		setTimeout(() => {
 			this.noticeMobile?.hide();
 		}, displayDurationMillisec - 4000);
-
 	}
 
 	/**
@@ -107,11 +130,11 @@ export class ShareStatusBar {
 	 */
 
 	error() {
-		this.statusBarItem.addClass("error");
-		this.statusBarItem.removeClass("sharing");
-		this.statusBarItem.removeClass("found-attachments");
+		this.statusBarItem.addClass('error');
+		this.statusBarItem.removeClass('sharing');
+		this.statusBarItem.removeClass('found-attachments');
 		this.icon.innerHTML = ERROR_ICONS;
-		this.status.innerHTML = i18next.t("error.errorPublish");
+		this.status.innerHTML = i18next.t('error.errorPublish');
 		this.noticeMobile?.hide();
 		setTimeout(() => {
 			this.statusBarItem.remove();

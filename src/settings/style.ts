@@ -1,9 +1,13 @@
-import i18next from "i18next";
-import { Notice, Setting } from "obsidian";
-import { GithubPublisherSettingsTab } from "src/settings";
+import i18next from 'i18next';
+import { Notice, Setting } from 'obsidian';
+import { GithubPublisherSettingsTab } from 'src/settings';
 
-import GithubPublisher from "../main";
-import {EnumbSettingsTabId, FolderSettings, GitHubPublisherSettings} from "./interface";
+import GithubPublisher from '../main';
+import {
+	EnumbSettingsTabId,
+	FolderSettings,
+	GitHubPublisherSettings,
+} from './interface';
 /**
  * show a settings
  * @param {Setting} containerEl setting to show
@@ -11,12 +15,11 @@ import {EnumbSettingsTabId, FolderSettings, GitHubPublisherSettings} from "./int
 
 export function showSettings(containerEl: Setting) {
 	for (const [type, elem] of Object.entries(containerEl)) {
-		if (type != "components") {
+		if (type != 'components') {
 			elem.show();
 		}
 	}
 }
-
 
 /**
  * Hide a settings
@@ -25,14 +28,18 @@ export function showSettings(containerEl: Setting) {
 
 export function hideSettings(containerEl: Setting) {
 	for (const [type, elem] of Object.entries(containerEl)) {
-		if (type != "components") {
+		if (type != 'components') {
 			elem.hide();
 		}
 	}
 }
 
-
-export function showHideBasedOnFolder(settings: GitHubPublisherSettings, frontmatterKeySettings: Setting, rootFolderSettings: Setting, folderNoteSettings: Setting) {
+export function showHideBasedOnFolder(
+	settings: GitHubPublisherSettings,
+	frontmatterKeySettings: Setting,
+	rootFolderSettings: Setting,
+	folderNoteSettings: Setting
+) {
 	const upload = settings.upload;
 	if (upload.behavior === FolderSettings.yaml) {
 		showSettings(frontmatterKeySettings);
@@ -41,17 +48,13 @@ export function showHideBasedOnFolder(settings: GitHubPublisherSettings, frontma
 	} else {
 		hideSettings(frontmatterKeySettings);
 		hideSettings(rootFolderSettings);
-		if (
-			upload.behavior ===
-				FolderSettings.obsidian
-		) {
+		if (upload.behavior === FolderSettings.obsidian) {
 			showSettings(folderNoteSettings);
 		} else {
 			hideSettings(folderNoteSettings);
 		}
 	}
 }
-
 
 /**
  * Show or hide the autoclean settings
@@ -61,34 +64,36 @@ export async function autoCleanCondition(
 	value: string,
 	autoCleanSetting: Setting,
 	plugin: GithubPublisher,
-	what: "rootFolder" | "defaultName" = "defaultName",
+	what: 'rootFolder' | 'defaultName' = 'defaultName',
 	settingsTab: GithubPublisherSettingsTab
 ) {
 	const settings = plugin.settings.upload;
-	const translation = what === "rootFolder" ? i18next.t("common.rootFolder") : i18next.t("common.defaultName");
+	const translation =
+		what === 'rootFolder'
+			? i18next.t('common.rootFolder')
+			: i18next.t('common.defaultName');
 	if (value.length === 0 && settings.defaultName) {
 		if (settings.autoclean.enable)
-			new Notice(i18next.t("error.autoClean", {what: translation}));
+			new Notice(i18next.t('error.autoClean', { what: translation }));
 		settings.autoclean.enable = false;
 		await plugin.saveSettings();
 		// @ts-ignore
-		autoCleanSetting.components[0].toggleEl.classList.remove("is-enabled");
+		autoCleanSetting.components[0].toggleEl.classList.remove('is-enabled');
 		settingsTab.renderSettingsPage(EnumbSettingsTabId.upload);
 	}
-	if (
-		value.length === 0 &&
-		settings.behavior !== FolderSettings.yaml
-	) {
+	if (value.length === 0 && settings.behavior !== FolderSettings.yaml) {
 		if (settings.autoclean.enable)
-			new Notice(i18next.t("error.autoClean", {what: i18next.t("common.defaultName")}),);
+			new Notice(
+				i18next.t('error.autoClean', { what: i18next.t('common.defaultName') })
+			);
 		settings.autoclean.enable = false;
 		// @ts-ignore
-		autoCleanSetting.components[0].toggleEl.classList.remove("is-enabled");
+		autoCleanSetting.components[0].toggleEl.classList.remove('is-enabled');
 		settingsTab.renderSettingsPage(EnumbSettingsTabId.upload);
 	}
 	if (settings.autoclean.enable) {
 		// @ts-ignore
-		autoCleanSetting.components[0].toggleEl.classList.add("is-enabled");
+		autoCleanSetting.components[0].toggleEl.classList.add('is-enabled');
 	}
 }
 
@@ -110,7 +115,7 @@ export async function folderHideShowSettings(
 	rootFolderSettings: Setting,
 	autoCleanSetting: Setting,
 	value: string,
-	plugin: GithubPublisher,
+	plugin: GithubPublisher
 ) {
 	const settings = plugin.settings.upload;
 	if (value === FolderSettings.yaml) {
@@ -120,9 +125,7 @@ export async function folderHideShowSettings(
 	}
 	if (settings.defaultName.length > 0 && settings.autoclean.enable) {
 		// @ts-ignore
-		autoCleanSetting.components[0].toggleEl.classList.add(
-			"is-enabled"
-		);
+		autoCleanSetting.components[0].toggleEl.classList.add('is-enabled');
 	}
 	hideSettings(frontmatterKeySettings);
 	hideSettings(rootFolderSettings);
@@ -143,14 +146,14 @@ export function autoCleanUpSettingsOnCondition(
 	const settings = plugin.settings.upload;
 	if (condition) {
 		// @ts-ignore
-		autoCleanSetting.components[0].toggleEl.classList.remove("is-enabled");
+		autoCleanSetting.components[0].toggleEl.classList.remove('is-enabled');
 		settings.autoclean.enable = false;
 		plugin.saveSettings().then();
 		return;
 	}
 	if (settings.autoclean.enable) {
 		// @ts-ignore
-		autoCleanSetting.components[0].toggleEl.classList.add("is-enabled");
+		autoCleanSetting.components[0].toggleEl.classList.add('is-enabled');
 	}
 }
 

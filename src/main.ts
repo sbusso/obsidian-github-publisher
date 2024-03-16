@@ -1,7 +1,14 @@
-import { Octokit } from "@octokit/core";
-import i18next from "i18next";
-import { FrontMatterCache, Menu, Plugin, TAbstractFile, TFile, TFolder } from "obsidian";
-import merge from "ts-deepmerge";
+import { Octokit } from '@octokit/core';
+import i18next from 'i18next';
+import {
+	FrontMatterCache,
+	Menu,
+	Plugin,
+	TAbstractFile,
+	TFile,
+	TFolder,
+} from 'obsidian';
+import merge from 'ts-deepmerge';
 
 import {
 	checkRepositoryValidityCallback,
@@ -9,41 +16,52 @@ import {
 	purgeNotesRemoteCallback,
 	shareEditedOnlyCallback,
 	shareOneNoteCallback,
-	uploadAllEditedNotesCallback, uploadAllNotesCallback, uploadNewNotesCallback
-} from "./commands/callback";
-import { addMenuFile, addMenuFolder } from "./commands/file_menu";
-import { ChooseWhichRepoToRun } from "./commands/suggest_other_repo_commands_modal";
-import { getTitleField, regexOnFileName } from "./conversion/file_path";
-import { GithubBranch } from "./GitHub/branch";
-import { resources, translationLanguage } from "./i18n/i18next";
-import { GithubPublisherSettingsTab } from "./settings";
+	uploadAllEditedNotesCallback,
+	uploadAllNotesCallback,
+	uploadNewNotesCallback,
+} from './commands/callback';
+import { addMenuFile, addMenuFolder } from './commands/file_menu';
+import { ChooseWhichRepoToRun } from './commands/suggest_other_repo_commands_modal';
+import { getTitleField, regexOnFileName } from './conversion/file_path';
+import { GithubBranch } from './GitHub/branch';
+import { resources, translationLanguage } from './i18n/i18next';
+import { GithubPublisherSettingsTab } from './settings';
 import {
 	DEFAULT_SETTINGS,
 	GitHubPublisherSettings,
 	GithubTiersVersion,
 	Repository,
-} from "./settings/interface";
-import { migrateSettings, OldSettings } from "./settings/migrate";
-import { createTokenPath, logs, monkeyPatchConsole, notif } from "./utils";
-import { checkRepositoryValidity, verifyRateLimitAPI } from "./utils/data_validation_test";
+} from './settings/interface';
+import { migrateSettings, OldSettings } from './settings/migrate';
+import { createTokenPath, logs, monkeyPatchConsole, notif } from './utils';
+import {
+	checkRepositoryValidity,
+	verifyRateLimitAPI,
+} from './utils/data_validation_test';
 
 /**
-	* Main class of the plugin
-	* @extends Plugin
-	*/
+ * Main class of the plugin
+ * @extends Plugin
+ */
 
 export default class GithubPublisher extends Plugin {
 	settings!: GitHubPublisherSettings;
-	branchName: string = "";
+	branchName: string = '';
 
 	/**
-		* Get the title field of a file
-		* @param {TFile} file - The file to get the title field from
-		* @param {FrontMatterCache} frontmatter - The frontmatter of the file
-		* @return {string} - The title field of the file
-		*/
-	getTitleFieldForCommand(file: TFile, frontmatter: FrontMatterCache | undefined | null): string {
-		return regexOnFileName(getTitleField(frontmatter, file, this.settings), this.settings);
+	 * Get the title field of a file
+	 * @param {TFile} file - The file to get the title field from
+	 * @param {FrontMatterCache} frontmatter - The frontmatter of the file
+	 * @return {string} - The title field of the file
+	 */
+	getTitleFieldForCommand(
+		file: TFile,
+		frontmatter: FrontMatterCache | undefined | null
+	): string {
+		return regexOnFileName(
+			getTitleField(frontmatter, file, this.settings),
+			this.settings
+		);
 	}
 
 	async chargeAllCommands(repo: Repository | null, plugin: GithubPublisher) {
@@ -52,12 +70,16 @@ export default class GithubPublisher extends Plugin {
 		}
 		this.addCommand(await shareOneNoteCallback(repo, this));
 		if (plugin.settings.upload.autoclean.enable) {
-			logs({ settings: this.settings }, "Adding purge command");
-			this.addCommand(await purgeNotesRemoteCallback(this, repo, this.branchName));
+			logs({ settings: this.settings }, 'Adding purge command');
+			this.addCommand(
+				await purgeNotesRemoteCallback(this, repo, this.branchName)
+			);
 		}
 		this.addCommand(await uploadAllNotesCallback(this, repo, this.branchName));
 		this.addCommand(await uploadNewNotesCallback(this, repo, this.branchName));
-		this.addCommand(await uploadAllEditedNotesCallback(this, repo, this.branchName));
+		this.addCommand(
+			await uploadAllEditedNotesCallback(this, repo, this.branchName)
+		);
 		this.addCommand(await shareEditedOnlyCallback(repo, this.branchName, this));
 		this.addCommand(await checkRepositoryValidityCallback(this, repo));
 	}
@@ -66,11 +88,16 @@ export default class GithubPublisher extends Plugin {
 		//@ts-ignore
 		const allCommands = this.app.commands.listCommands();
 		for (const command of allCommands) {
-			if (command.id.startsWith("obsidian-mkdocs-publisher")) {
-				const publisherCMDsName = command.id.replace("obsidian-mkdocs-publisher:", "").split("-");
+			if (command.id.startsWith('obsidian-mkdocs-publisher')) {
+				const publisherCMDsName = command.id
+					.replace('obsidian-mkdocs-publisher:', '')
+					.split('-');
 				//repo will be the last element of the array
 				const repoCmd = publisherCMDsName[publisherCMDsName.length - 1];
-				if (repoCmd.startsWith("K") && repo.smartKey === repoCmd.replace("K", "")) {
+				if (
+					repoCmd.startsWith('K') &&
+					repo.smartKey === repoCmd.replace('K', '')
+				) {
 					//@ts-ignore
 					this.app.commands.removeCommand(command.id);
 				}
@@ -83,20 +110,26 @@ export default class GithubPublisher extends Plugin {
 		//@ts-ignore
 		const allCommands = this.app.commands.listCommands();
 		for (const command of allCommands) {
-			if (command.id.startsWith("obsidian-mkdocs-publisher")) {
-				const commandName = command.id.replace("obsidian-mkdocs-publisher:", "");
+			if (command.id.startsWith('obsidian-mkdocs-publisher')) {
+				const commandName = command.id.replace(
+					'obsidian-mkdocs-publisher:',
+					''
+				);
 				//repo will be the last element of the array
-				const repoCmd = commandName.split("-")[commandName.split("-").length - 1];
-				if (repoCmd.startsWith("K")) {
-					const repoIndex = allRepo.findIndex((repo) => repo.smartKey === repoCmd.replace("K", ""));
+				const repoCmd =
+					commandName.split('-')[commandName.split('-').length - 1];
+				if (repoCmd.startsWith('K')) {
+					const repoIndex = allRepo.findIndex(
+						repo => repo.smartKey === repoCmd.replace('K', '')
+					);
 					if (repoIndex === -1) {
 						//@ts-ignore
 						this.app.commands.removeCommand(command.id);
 					}
 				}
 				if (!this.settings.upload.autoclean.enable) {
-					if (commandName === "publisher-delete-clean") {
-						logs({ settings: this.settings }, "Removing purge/clean commands");
+					if (commandName === 'publisher-delete-clean') {
+						logs({ settings: this.settings }, 'Removing purge/clean commands');
 						//@ts-ignore
 						this.app.commands.removeCommand(command.id);
 					}
@@ -107,7 +140,7 @@ export default class GithubPublisher extends Plugin {
 
 	async reloadCommands() {
 		//compare old and new repo to delete old commands
-		logs({ settings: this.settings }, "Reloading commands");
+		logs({ settings: this.settings }, 'Reloading commands');
 		const newRepo: Repository[] = this.settings.github?.otherRepo ?? [];
 		this.cleanOldCommands();
 		for (const repo of newRepo) {
@@ -120,25 +153,25 @@ export default class GithubPublisher extends Plugin {
 	}
 
 	/**
-		* Read the env file to get the token of the plugin
-		* Form of the file:
-		* ```
-		* GITHUB_TOKEN=token
-		* ```
-		* @returns {Promise<string>} - The token of the plugin
-		*/
+	 * Read the env file to get the token of the plugin
+	 * Form of the file:
+	 * ```
+	 * GITHUB_TOKEN=token
+	 * ```
+	 * @returns {Promise<string>} - The token of the plugin
+	 */
 
 	async loadToken(repo?: string): Promise<string> {
-		if (repo=="default") repo = undefined;
+		if (repo == 'default') repo = undefined;
 		const tokenPath = createTokenPath(this, this.settings.github.tokenPath);
 
 		const tokenFileExists = await this.app.vault.adapter.exists(`${tokenPath}`);
 		if (!tokenFileExists) {
-			return "";
+			return '';
 		}
 		try {
 			const tokenFile = await this.app.vault.adapter.read(`${tokenPath}`);
-			if (tokenPath.endsWith(".json")) {
+			if (tokenPath.endsWith('.json')) {
 				const tokenJSON = JSON.parse(tokenFile);
 				const defaultToken = tokenJSON.GITHUB_PUBLISHER_TOKEN;
 				if (repo)
@@ -146,122 +179,156 @@ export default class GithubPublisher extends Plugin {
 				return defaultToken;
 			}
 			if (tokenFile) {
-				const defaultToken=tokenFile.split("\n").find((line) => line.startsWith("GITHUB_TOKEN"))?.split("=")[1] ?? "";
-				if (repo) return tokenFile.split("\n").find((line) => line.startsWith(`${repo}_TOKEN`))?.split("=")[1] ?? defaultToken;
+				const defaultToken =
+					tokenFile
+						.split('\n')
+						.find(line => line.startsWith('GITHUB_TOKEN'))
+						?.split('=')[1] ?? '';
+				if (repo)
+					return (
+						tokenFile
+							.split('\n')
+							.find(line => line.startsWith(`${repo}_TOKEN`))
+							?.split('=')[1] ?? defaultToken
+					);
 				return defaultToken;
 			}
 		} catch (e) {
 			notif({ settings: this.settings, e: true }, e);
-			return "";
+			return '';
 		}
-		return "";
+		return '';
 	}
 
 	/**
-		* Create a new instance of Octokit to load a new instance of GithubBranch
-	*/
+	 * Create a new instance of Octokit to load a new instance of GithubBranch
+	 */
 	async reloadOctokit(repo?: string) {
 		let octokit: Octokit;
 		const apiSettings = this.settings.github.api;
 		const token = await this.loadToken(repo);
-		if (apiSettings.tiersForApi === GithubTiersVersion.entreprise && apiSettings.hostname.length > 0) {
-			octokit = new Octokit(
-				{
-					baseUrl: `${apiSettings.hostname}/api/v3`,
-					auth: token,
-				});
+		if (
+			apiSettings.tiersForApi === GithubTiersVersion.entreprise &&
+			apiSettings.hostname.length > 0
+		) {
+			octokit = new Octokit({
+				baseUrl: `${apiSettings.hostname}/api/v3`,
+				auth: token,
+			});
 		} else {
 			octokit = new Octokit({ auth: token });
 		}
-		return new GithubBranch(
-			octokit,
-			this,
-		);
+		return new GithubBranch(octokit, this);
 	}
 
-
-
 	/**
-		* Function called when the plugin is loaded
-		* @return {Promise<void>}
-		*/
+	 * Function called when the plugin is loaded
+	 * @return {Promise<void>}
+	 */
 	async onload(): Promise<void> {
 		await i18next.init({
 			lng: translationLanguage,
-			fallbackLng: "en",
+			fallbackLng: 'en',
 			resources,
 			returnNull: false,
 			returnEmptyString: false,
 		});
-		
-		console.info(`[GITHUB PUBLISHER] v.${this.manifest.version} (lang: ${translationLanguage}) loaded`);
+
+		console.info(
+			`[GITHUB PUBLISHER] v.${this.manifest.version} (lang: ${translationLanguage}) loaded`
+		);
 		await this.loadSettings();
 
 		const oldSettings = this.settings;
 		await migrateSettings(oldSettings as unknown as OldSettings, this);
 
 		this.branchName =
-			this.app.vault.getName().replaceAll(" ", "-").replaceAll(".", "-") +
-			"-" +
-			new Date().toLocaleDateString("en-US").replace(/\//g, "-");
-		this.addSettingTab(new GithubPublisherSettingsTab(this.app, this, this.branchName));
+			this.app.vault.getName().replaceAll(' ', '-').replaceAll('.', '-') +
+			'-' +
+			new Date().toLocaleDateString('en-US').replace(/\//g, '-');
+		this.addSettingTab(
+			new GithubPublisherSettingsTab(this.app, this, this.branchName)
+		);
 		// verify rate limit
 
-		if (!this.settings.github.verifiedRepo && (await this.loadToken()) !== "") {
+		if (!this.settings.github.verifiedRepo && (await this.loadToken()) !== '') {
 			const octokit = await this.reloadOctokit();
-			this.settings.github.verifiedRepo = await checkRepositoryValidity(octokit, null, null, true);
-			this.settings.github.rateLimit = await verifyRateLimitAPI(octokit.octokit, this.settings, false);
+			this.settings.github.verifiedRepo = await checkRepositoryValidity(
+				octokit,
+				null,
+				null,
+				true
+			);
+			this.settings.github.rateLimit = await verifyRateLimitAPI(
+				octokit.octokit,
+				this.settings,
+				false
+			);
 			await this.saveSettings();
 		}
 
 		for (const repository of this.settings.github.otherRepo) {
 			const repoOctokit = await this.reloadOctokit(repository.smartKey);
-			repository.verifiedRepo = await checkRepositoryValidity(repoOctokit, repository, null, false);
-			repository.rateLimit = await verifyRateLimitAPI(repoOctokit.octokit, this.settings);
+			repository.verifiedRepo = await checkRepositoryValidity(
+				repoOctokit,
+				repository,
+				null,
+				false
+			);
+			repository.rateLimit = await verifyRateLimitAPI(
+				repoOctokit.octokit,
+				this.settings
+			);
 		}
 		await this.saveSettings();
 
-
 		this.registerEvent(
 			//@ts-ignore
-			this.app.workspace.on("file-menu", (menu: Menu, folder: TAbstractFile) => {
-				if (this.settings.plugin.fileMenu && folder instanceof TFolder) {
-					addMenuFolder(menu, folder, this.branchName, this);
-				} else if (folder instanceof TFile) {
-					addMenuFile(this, folder, this.branchName, menu);
+			this.app.workspace.on(
+				'file-menu',
+				(menu: Menu, folder: TAbstractFile) => {
+					if (this.settings.plugin.fileMenu && folder instanceof TFolder) {
+						addMenuFolder(menu, folder, this.branchName, this);
+					} else if (folder instanceof TFile) {
+						addMenuFile(this, folder, this.branchName, menu);
+					}
 				}
-			})
+			)
 		);
 
 		this.registerEvent(
-			this.app.workspace.on("editor-menu", (menu, editor, view) => {
+			this.app.workspace.on('editor-menu', (menu, editor, view) => {
 				if (view.file) addMenuFile(this, view.file, this.branchName, menu);
 			})
 		);
 		await this.chargeAllCommands(null, this);
 
 		this.addCommand({
-			id: "check-rate-limit",
-			name: i18next.t("commands.checkValidity.rateLimit.command"),
+			id: 'check-rate-limit',
+			name: i18next.t('commands.checkValidity.rateLimit.command'),
 			callback: async () => {
 				const octokit = await this.reloadOctokit();
-				this.settings.github.rateLimit = await verifyRateLimitAPI(octokit.octokit, this.settings);
+				this.settings.github.rateLimit = await verifyRateLimitAPI(
+					octokit.octokit,
+					this.settings
+				);
 				await this.saveSettings();
-			}
+			},
 		});
-
 
 		if (this.settings.github.otherRepo.length > 0) {
 			this.addCommand({
-				id: "run-cmd-for-repo",
-				name: i18next.t("commands.runOtherRepo.title"),
+				id: 'run-cmd-for-repo',
+				name: i18next.t('commands.runOtherRepo.title'),
 				callback: async () => {
 					new ChooseWhichRepoToRun(this.app, this, this.branchName).open();
-				}
+				},
 			});
 		}
 
-		const repoWithShortcuts = this.settings.github.otherRepo.filter((repo) => repo.createShortcuts);
+		const repoWithShortcuts = this.settings.github.otherRepo.filter(
+			repo => repo.createShortcuts
+		);
 		for (const repo of repoWithShortcuts) {
 			await this.chargeAllCommands(repo, this);
 		}
@@ -270,25 +337,34 @@ export default class GithubPublisher extends Plugin {
 	}
 
 	/**
-		* Called when the plugin is disabled
-		*/
+	 * Called when the plugin is disabled
+	 */
 	onunload() {
-		console.info("[Github Publisher] unloaded");
+		console.info('[Github Publisher] unloaded');
 	}
 
 	async loadSettings() {
 		const loadedData = await this.loadData();
 		try {
-			this.settings = merge(DEFAULT_SETTINGS, loadedData) as unknown as GitHubPublisherSettings;
+			this.settings = merge(
+				DEFAULT_SETTINGS,
+				loadedData
+			) as unknown as GitHubPublisherSettings;
 		} catch (e) {
-			console.warn("[Github Publisher] Error while deep merging settings, using default loading method");
-			this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+			console.warn(
+				'[Github Publisher] Error while deep merging settings, using default loading method'
+			);
+			this.settings = Object.assign(
+				{},
+				DEFAULT_SETTINGS,
+				await this.loadData()
+			);
 		}
 	}
 
 	/**
-		* Save the settings of the plugin
-		*/
+	 * Save the settings of the plugin
+	 */
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
