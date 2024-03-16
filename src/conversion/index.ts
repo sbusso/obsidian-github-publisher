@@ -19,8 +19,7 @@ import {
 	MultiProperties,
 } from '../settings/interface';
 import { notif } from '../utils';
-import { convertDataviewQueries } from './compiler/dataview';
-import { bakeEmbeds, convertInlineDataview } from './compiler/embeds';
+import { bakeEmbeds } from './compiler/embeds';
 import findAndReplaceText from './find_and_replace_text';
 import { convertToInternalGithub, convertWikilinks } from './links';
 
@@ -220,19 +219,19 @@ export async function mainConverting(
 		plugin.settings,
 		frontmatter
 	);
-	text = await convertDataviewQueries(
-		text,
-		file.path,
-		frontmatter,
-		file,
-		properties
-	);
-	text = await convertInlineDataview(text, plugin, file);
-	text = addHardLineBreak(
-		text,
-		plugin.settings,
-		properties.frontmatter.general
-	);
+	// text = await convertDataviewQueries(
+	// 	text,
+	// 	file.path,
+	// 	frontmatter,
+	// 	file,
+	// 	properties
+	// );
+	// text = await convertInlineDataview(text, plugin, file);
+	// text = addHardLineBreak(
+	// 	text,
+	// 	plugin.settings,
+	// 	properties.frontmatter.general
+	// );
 
 	return findAndReplaceText(text, plugin.settings, true);
 }
